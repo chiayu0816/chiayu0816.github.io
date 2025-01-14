@@ -1,6 +1,9 @@
-# panic and recover
+---
+title: "panic and recover"
+categories: ["Go"]
+---
 
-***panic 是 Go 語言中的一種機制, 用於處理程序中的異常情況或錯誤。***
+**panic 是 Go 語言中的一種機制, 用於處理程序中的異常情況或錯誤。**
 
 以下是 panic 的一些主要特點:
 

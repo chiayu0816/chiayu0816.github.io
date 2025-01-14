@@ -1,6 +1,9 @@
-# context
+---
+title: "context"
+categories: ["Go"]
+---
 
-***用於在 goroutine 之間傳遞截止日期、取消信號和其他請求範圍的值。以下是 context 的主要特點和用途：***
+**用於在 goroutine 之間傳遞截止日期、取消信號和其他請求範圍的值。以下是 context 的主要特點和用途：**
 
 * 取消操作： context 允許你取消長時間運行的操作。當一個操作被取消時，使用該 context 的所有 goroutine 都應該立即停止工作並返回。
 * 截止時間： 你可以為 context 設置一個截止時間，當到達該時間時，使用此 context 的所有操作都應該結束。

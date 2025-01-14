@@ -1,6 +1,9 @@
-# channel
+---
+title: "channel"
+categories: ["Go"]
+---
 
-***channel是goroutine之間進行通信和同步的機制。***
+**channel是goroutine之間進行通信和同步的機制。**
 
 #### 主要特點:
 

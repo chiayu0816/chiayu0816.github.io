@@ -1,6 +1,9 @@
-# cron job
+---
+title: "cron job"
+categories: ["Go"]
+---
 
-***Go語言中幾個常用的cron job函式庫簡介，robfig/cron 基本使用方式***
+**Go語言中幾個常用的cron job函式庫簡介，robfig/cron 基本使用方式**
 
 Go語言中幾個常用的cron job函式庫:
 

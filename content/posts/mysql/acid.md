@@ -1,8 +1,9 @@
-# ACID 屬性
+---
+title: "ACID"
+categories: ["MySQL"]
+---
 
-***ACID 屬性是資料庫Transaction的四個基本特性，它們保證了資料庫在任何情況下都能保持一致性***
-
-## ACID 是資料庫Transaction的四個基本特性的縮寫：
+**ACID 屬性是資料庫Transaction的四個基本特性，它們保證了資料庫在任何情況下都能保持一致性**
 
 ### 1. 原子性（Atomicity）
 

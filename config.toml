@@ -1,0 +1,63 @@
+baseURL = 'https://chiayu0816.github.io/'
+languageCode = 'zh-tw'
+title = 'CodeLife Chronicles by Roy'
+theme = 'hextra'
+
+# 啟用 emoji 支持
+enableEmoji = true
+
+# 目錄設置
+[markup.goldmark.renderer]
+  unsafe = true
+
+[markup.tableOfContents]
+  startLevel = 2
+  endLevel = 4
+
+# 主題相關設置
+[params]
+
+  # 導航欄設置
+  [params.navbar]
+    displayTitle = true
+    displayLogo = true
+    
+  [params.navbar.logo]
+    path = "/images/avatar.jpg"
+    text = "CodeLife Chronicles by Roy"
+    
+  # 頁尾設置
+  [params.footer]
+    displayCopyright = true
+    displayPoweredBy = true
+
+  # 社交媒體連結
+  [params.social]
+    github = "chiayu0816"
+
+[taxonomies]
+  category = "categories"
+  
+# 主導航菜單
+[[menu.main]]
+  name = "Docs"
+  pageRef = "/posts"
+  weight = 1
+
+[[menu.main]]
+  name = "Categories"
+  pageRef = "/categories"
+  weight = 2
+
+[[menu.main]]
+  name = "About"
+  pageRef = "about"
+  weight = 3
+
+[[menu.main]]
+  name = "LinkedIn"
+  url = "https://www.linkedin.com/in/cylee-19830816/"
+  weight = 4
+  [menu.main.params]
+    icon = "linkedin"
+    target = "_blank"

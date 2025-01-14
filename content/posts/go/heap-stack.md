@@ -1,4 +1,7 @@
-# 為什麼 Stack 分配比 Heap 分配更快
+---
+title: "為什麼 Stack 分配比 Heap 分配更快"
+categories: ["Go"]
+---
 
 ### 1. 分配機制
 

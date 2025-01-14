@@ -1,6 +1,8 @@
-# goroutine
+---
+title: "goroutine"
+---
 
-***Goroutine是Go語言中的輕量級線程,由Go運行時管理。允許併發執行函數。***
+**Goroutine是Go語言中的輕量級線程,由Go運行時管理。允許併發執行函數。**
 
 1. 定義：Goroutine 是一個由 Go 運行時管理的獨立執行單元，可以看作是一種用戶級線程。
 2. 特點：

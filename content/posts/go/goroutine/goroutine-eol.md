@@ -1,6 +1,10 @@
-# 主goroutine結束時,其它goroutine會怎樣?
+---
+title: "主goroutine結束時,其它goroutine會怎樣?"
+# date: 2024-03-21
+categories: ["Go"]
+---
 
-當主goroutine結束時，其它正在運行的goroutine的行為如下：
+**當主goroutine結束時，其它正在運行的goroutine的行為如下：**
 
 1. 強制終止：
    * 當主goroutine結束時，Go程序會立即退出。

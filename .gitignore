@@ -1,0 +1,18 @@
+# Hugo 生成的文件
+/public/
+/resources/_gen/
+/assets/jsconfig.json
+hugo_stats.json
+
+# IDE 相關
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS 相關
+.DS_Store
+Thumbs.db
+
+# Hugo 構建鎖
+.hugo_build.lock 
