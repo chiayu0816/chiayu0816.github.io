@@ -35,6 +35,8 @@ jobs:
           extended: true
 
       - name: Build
+        env:
+          HUGO_BASEURL: 'https://chiayu0816.github.io/'
         run: hugo --minify
 
       - name: Upload artifact
@@ -45,7 +47,7 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://chiayu0816.github.io
     runs-on: ubuntu-latest
     needs: build
     steps:
