@@ -16,4 +16,5 @@ layout: landing
   {{< card link="posts/mysql" title="MySQL" icon="book-open" >}}
   {{< card link="posts/podman" title="Podman" icon="book-open" >}}
   {{< card link="posts/interview" title="Interview" icon="book-open" >}}
+  {{< card link="posts/windows" title="Windows" icon="book-open" >}}
 {{< /cards >}}

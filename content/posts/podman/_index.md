@@ -1,7 +1,6 @@
 ---
 title: "Podman"
-cascade:
-  type: docs
+categories: ["Podman"]
 ---
 
 ## Explore
