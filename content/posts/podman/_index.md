@@ -1,11 +1,6 @@
 ---
-title: "Podman"
-categories: ["Podman"]
+title: Podman
+weight: 4
 ---
 
-## Explore
-
-{{< cards >}}
-  {{< card link="podman_init" title="Podman Init" icon="document-text" >}}
-  {{< card link="podman_init_question" title="Podman Init QA" icon="document-text" >}}
-{{< /cards >}}
+* [Podman 初始化問題]({{< relref "/posts/podman/podman_init_question" >}})

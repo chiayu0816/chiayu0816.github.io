@@ -16,7 +16,6 @@ enableEmoji = true
 
 # 主題相關設置
 [params]
-
   # 導航欄設置
   [params.navbar]
     displayTitle = true

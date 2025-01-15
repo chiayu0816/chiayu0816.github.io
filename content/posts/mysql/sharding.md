@@ -1,10 +1,6 @@
 ---
 title: "分表"
-categories: ["MySQL"]
-wedight: 1
 ---
-
-# 分表
 
 ### **定義與類型**
 

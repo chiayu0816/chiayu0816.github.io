@@ -1,14 +1,8 @@
 ---
-title: "MySQL"
-cascade:
-  type: docs
+title: MySQL
 ---
 
-## Explore
-
-{{< cards >}}
-  {{< card link="index/" title="index" icon="document-text" >}}
-  {{< card link="acid" title="ACID" icon="document-text" >}}
-  {{< card link="explain" title="Exaplin" icon="document-text" >}}
-  {{< card link="sharding" title="分表" icon="document-text" >}}
-{{< /cards >}}
+* [Index]({{< relref "/posts/mysql/index/index-basic" >}})
+* [ACID]({{< relref "/posts/mysql/acid" >}})
+* [Explain]({{< relref "/posts/mysql/explain" >}})
+* [Sharding]({{< relref "/posts/mysql/sharding" >}})
