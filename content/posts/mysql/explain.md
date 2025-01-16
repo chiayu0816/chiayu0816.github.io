@@ -1,5 +1,6 @@
 ---
 title: "EXPLAIN"
+categories: ["MySQL"]
 ---
 
 **EXPLAIN是優化MySQL查詢的關鍵技能。它能幫助我們理解資料庫如何執行查詢，從而找出潛在的性能問題.**

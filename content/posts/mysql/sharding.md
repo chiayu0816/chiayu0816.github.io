@@ -1,5 +1,6 @@
 ---
 title: "分表"
+categories: ["MySQL"]
 ---
 
 ### **定義與類型**

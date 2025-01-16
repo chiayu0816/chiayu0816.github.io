@@ -1,5 +1,6 @@
 ---
 title: "索引基本概念"
+categories: ["MySQL"]
 weight: 1
 ---
 

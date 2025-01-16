@@ -17,4 +17,5 @@ layout: landing
   {{< card link="posts/podman" title="Podman" icon="book-open" >}}
   {{< card link="posts/interview" title="Interview" icon="book-open" >}}
   {{< card link="posts/windows" title="Windows" icon="book-open" >}}
+  {{< card link="posts/git" title="Git" icon="book-open" >}}
 {{< /cards >}}
