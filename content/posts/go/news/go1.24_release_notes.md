@@ -1,9 +1,7 @@
 ---
-title: "Release Notes"
+title: "Go 1.24 Release Notes Highlights"
 categories: ["Go"]
 ---
-
-# Go 1.24 更新重點摘要
 
 ## 語言變更
 - **泛型類型別名**  
@@ -142,5 +140,5 @@ categories: ["Go"]
 
 ---
 
-> 以上內容是透過 AI 總結，僅供參考。詳細內容請以[官方公告](https://go.dev/doc/go1.24)為準。
+>以上內容是透過 AI 總結，僅供參考。詳細內容請以[官方公告](https://go.dev/doc/go1.24)為準。
 
