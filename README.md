@@ -31,4 +31,5 @@ hugo server --buildDrafts --disableFastRender
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+- Blog posts and articles can be freely shared with proper attribution to the original source.
+- Code examples and technical implementations are licensed under the [MIT License](LICENSE).
