@@ -3,6 +3,7 @@ title: Go
 weight: 1
 ---
 
+* [News]({{< relref "/posts/go/news" >}})
 * [Goroutine]({{< relref "/posts/go/goroutine" >}})
 * [Channel]({{< relref "/posts/go/channel" >}})
 * [Context]({{< relref "/posts/go/context" >}})

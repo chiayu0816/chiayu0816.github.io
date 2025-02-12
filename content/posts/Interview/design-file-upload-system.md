@@ -1,6 +1,6 @@
 ---
 title: Design a file upload system
-categories: ["Interview"]
+ 
 ---
 
 **這是一個設計檔案上傳系統的面試考題，雖然最後沒有拿到offer，但面試內容還蠻有趣，在這邊做個記錄，也補充一下當時沒有考慮到的狀況，內容僅供參考，有錯誤的地方也歡迎指正和討論喔。**
