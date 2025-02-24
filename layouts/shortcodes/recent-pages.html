@@ -1,0 +1,25 @@
+{{ $limit := .Get "limit" | default 5 }}
+
+{{ $pages := where .Site.RegularPages "Kind" "page" }}
+{{ $pages := $pages.ByDate.Reverse }}
+
+{{ range first $limit $pages }}
+  {{ if .Date }}
+    {{ $title := .Title }}
+    {{ $link := .RelPermalink }}
+    {{ $date := .Date.Format "2006-01-02" }}
+    <div style="margin-bottom: 1.25rem; padding: 0.75rem 0;" class="w-full">
+      <div style="width: 100%;">
+        <a href="{{ $link }}" style="text-decoration: none;">
+          <h3 style="font-size: 1.4rem; font-weight: 600; color: #ffffff; cursor: pointer; margin: 0 0 0.5rem 0;" onmouseover="this.style.color='#93c5fd'" onmouseout="this.style.color='#ffffff'">{{ $title }}</h3>
+        </a>
+        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <span style="color: #9ca3af; font-size: 0.875rem;">{{ $date }}</span>
+          {{ range .Params.categories }}
+            <span style="display: inline-block; padding: 0px 8px; background-color: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-weight: 700; color: #333; line-height: 1.5;">{{ . }}</span>
+          {{ end }}
+        </div>
+      </div>
+    </div>
+  {{ end }}
+{{ end }} 

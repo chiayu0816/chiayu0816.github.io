@@ -9,7 +9,13 @@ layout: landing
 
 歡迎來到我的程式學習筆記部落格！這裡記錄了我在程式開發路上的心得與經驗分享。
 
-## Explore
+## 最新文章
+
+<div class="mt-4">
+{{< recent-pages limit=5 >}}
+</div>
+
+## 探索主題
 
 {{< cards >}}
   {{< card link="posts/go" title="Go" icon="book-open" >}}
