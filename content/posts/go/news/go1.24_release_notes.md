@@ -1,6 +1,7 @@
 ---
 title: "Go 1.24 Release Notes Highlights"
 categories: ["Go"]
+date: 2025-02-12
 ---
 
 ## 語言變更
