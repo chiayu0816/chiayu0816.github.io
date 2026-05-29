@@ -4,6 +4,8 @@
   var LS = "ipv1:";
   var $ = function(s,r){return (r||document).querySelector(s);};
   var ce = function(t,c){var e=document.createElement(t); if(c) e.className=c; return e;};
+  var techByKey = {};
+  DATA.techs.forEach(function(t){ techByKey[t.key] = t; });
 
   // ---- progress store ----
   function isDone(id){ return localStorage.getItem(LS+id)==="1"; }
@@ -11,6 +13,28 @@
 
   var sideNav = $("#side-nav"), content = $("#content");
   var navItems = {};
+  var bnCurrent = $("#bn-current");
+
+  function headerOffset(){
+    var tb = $(".topbar");
+    return (tb ? tb.getBoundingClientRect().height : 74) + 10;
+  }
+
+  function isMobileNav(){ return window.matchMedia("(max-width: 899px)").matches; }
+
+  function setNavOpen(open){
+    document.body.classList.toggle("nav-open", open);
+    var toggle = $("#nav-toggle");
+    var backdrop = $("#nav-backdrop");
+    if(toggle) toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if(backdrop) backdrop.hidden = !open;
+  }
+
+  function setActiveTech(key){
+    Object.keys(navItems).forEach(function(k){ navItems[k].classList.toggle("active", k===key); });
+    var tech = techByKey[key];
+    if(bnCurrent && tech) bnCurrent.textContent = tech.name;
+  }
 
   // ---- render ----
   DATA.techs.forEach(function(tech, ti){
@@ -19,7 +43,10 @@
     n.dataset.key = tech.key;
     n.innerHTML = '<span class="dot"></span><span class="nm">'+tech.name+
       '</span><span class="ct" data-ct>0/'+tech.count+'</span>';
-    n.addEventListener("click",function(){ scrollToTech(tech.key); });
+    n.addEventListener("click",function(){
+      scrollToTech(tech.key);
+      if(isMobileNav()) setNavOpen(false);
+    });
     sideNav.appendChild(n);
     navItems[tech.key] = n;
 
@@ -47,15 +74,17 @@
     if(isDone(id)) card.classList.add("reviewed");
 
     var row = ce("button","q-row");
+    row.setAttribute("aria-expanded","false");
     row.innerHTML = '<span class="q-num">'+String(idx+1).padStart(2,"0")+'</span>'+
       '<span class="q-text"></span>'+
       '<label class="rev" title="標記為已複習"><input type="checkbox"'+
-      (isDone(id)?" checked":"")+'><span>已複習</span></label>'+
-      '<span class="chev">▶</span>';
+      (isDone(id)?" checked":"")+' aria-label="標記為已複習"><span>已複習</span></label>'+
+      '<span class="chev" aria-hidden="true">▶</span>';
     $(".q-text",row).textContent = t.q;
     row.addEventListener("click",function(e){
       if(e.target.closest(".rev")) return;
-      card.classList.toggle("open");
+      var open = card.classList.toggle("open");
+      row.setAttribute("aria-expanded", open ? "true" : "false");
     });
 
     var chk = $(".rev input",row);
@@ -114,22 +143,54 @@
     $("#p-total").textContent = DATA.total;
     $("#p-pct").textContent = pct+"%";
     $("#ring").style.setProperty("--p", pct);
+    var ringBottom = $("#ring-bottom");
+    if(ringBottom) ringBottom.style.setProperty("--p", pct);
   }
 
   // ---- scrollspy ----
   function scrollToTech(key){
     var el = $("#tech-"+key);
-    if(el) window.scrollTo({top: el.getBoundingClientRect().top + window.pageYOffset - 74, behavior:"smooth"});
+    if(el) window.scrollTo({top: el.getBoundingClientRect().top + window.pageYOffset - headerOffset(), behavior:"smooth"});
   }
   var io = new IntersectionObserver(function(entries){
     entries.forEach(function(en){
       if(en.isIntersecting){
         var key = en.target.id.replace("tech-","");
-        Object.keys(navItems).forEach(function(k){ navItems[k].classList.toggle("active", k===key); });
+        setActiveTech(key);
       }
     });
-  },{rootMargin:"-45% 0px -50% 0px"});
+  },{rootMargin:"-40% 0px -48% 0px"});
   DATA.techs.forEach(function(t){ io.observe($("#tech-"+t.key)); });
+  if(DATA.techs[0]) setActiveTech(DATA.techs[0].key);
+
+  // ---- mobile nav ----
+  var navToggle = $("#nav-toggle");
+  var navBackdrop = $("#nav-backdrop");
+  if(navToggle){
+    navToggle.addEventListener("click",function(){
+      setNavOpen(!document.body.classList.contains("nav-open"));
+    });
+  }
+  if(navBackdrop){
+    navBackdrop.addEventListener("click",function(){ setNavOpen(false); });
+  }
+  var bnMenu = $("#bn-menu");
+  var bnSearch = $("#bn-search");
+  if(bnMenu) bnMenu.addEventListener("click",function(){ setNavOpen(true); });
+  if(bnSearch){
+    bnSearch.addEventListener("click",function(){
+      var box = $("#search");
+      if(box){
+        box.focus();
+        window.scrollTo({top:0, behavior:"smooth"});
+      }
+    });
+  }
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape"){
+      if(document.body.classList.contains("nav-open")) setNavOpen(false);
+    }
+  });
 
   // ---- search ----
   var box = $("#search");
@@ -137,7 +198,9 @@
   box.addEventListener("input",function(){ clearTimeout(timer); timer=setTimeout(runSearch,120); });
   box.addEventListener("keydown",function(e){ if(e.key==="Escape"){ box.value=""; runSearch(); box.blur(); } });
   document.addEventListener("keydown",function(e){
-    if(e.key==="/" && document.activeElement!==box){ e.preventDefault(); box.focus(); }
+    if(e.key==="/" && document.activeElement!==box && !isMobileNav()){
+      e.preventDefault(); box.focus();
+    }
   });
 
   function esc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
@@ -153,12 +216,15 @@
         if(match){
           shown++; any=true;
           var qt = $(".q-text",card);
+          var row = $(".q-row",card);
           if(q){
             qt.innerHTML = card._q.replace(new RegExp("("+esc(box.value.trim())+")","ig"),"<mark>$1</mark>");
             card.classList.add("open");
+            if(row) row.setAttribute("aria-expanded","true");
           } else {
             qt.textContent = card._q;
             card.classList.remove("open");
+            if(row) row.setAttribute("aria-expanded","false");
           }
         }
       });

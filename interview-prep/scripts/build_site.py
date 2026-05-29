@@ -536,13 +536,15 @@ APP_JS = r"""(function(){
 def build_index_html(data: dict) -> str:
     total = data["total"]
     nstars3 = sum(1 for t in data["techs"] if t["prio"] == 3)
+    first_tech = data["techs"][0]["name"] if data["techs"] else "—"
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Roy Lee · 後端面試準備</title>
 <meta name="description" content="Senior Go/Java 後端面試準備 · {total} 題技術深度問答">
+<meta name="theme-color" content="#0a0c11">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -551,35 +553,42 @@ def build_index_html(data: dict) -> str:
 <body>
 <header class="topbar">
   <div class="topbar-in">
+    <button type="button" class="nav-toggle" id="nav-toggle" aria-label="開啟技術分類" aria-controls="sidebar" aria-expanded="false">
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </button>
     <div class="brand">
       <span class="logo">roy<span class="pin">_</span>prep</span>
       <span class="sub">SENIOR BACKEND · GO/JAVA</span>
     </div>
     <div class="search">
-      <span class="si">⌕</span>
+      <span class="si" aria-hidden="true">⌕</span>
       <input id="search" type="search" placeholder="搜尋題目與答案…  (按 / 聚焦)" autocomplete="off" aria-label="搜尋">
-      <span class="kbd">/</span>
+      <span class="kbd" aria-hidden="true">/</span>
     </div>
     <div class="progress-wrap">
       <span class="progress-num"><b id="p-done">0</b>/<span id="p-total">{total}</span> · <span id="p-pct">0%</span></span>
-      <div class="ring" id="ring" title="整體複習進度"></div>
+      <div class="ring" id="ring" title="整體複習進度" role="img" aria-label="整體複習進度"></div>
     </div>
   </div>
 </header>
 
+<div class="nav-backdrop" id="nav-backdrop" hidden></div>
+
 <div class="layout">
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="side-title">技術分類</div>
     <div id="side-nav" class="nav-scroll"></div>
     <div class="side-foot">
       進度自動存於此瀏覽器<br>localStorage
-      <br><button id="reset">清除複習紀錄</button>
+      <br><button type="button" id="reset">清除複習紀錄</button>
     </div>
   </aside>
 
   <main id="content">
     <section class="hero">
-      <h1>後端面試準備 <span class="em">·</span> 深度版</h1>
+      <h1>面試準備</h1>
       <p>以「核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 結合履歷」五段式整理的 Senior Go / Java 後端題庫，
          涵蓋 Roy 在加密貨幣交易所（撮合、行情、對沖）與體育數據（Betradar、LMAX Disruptor）的實戰脈絡。
          點題卡展開作答，勾選「已複習」自我追蹤。</p>
@@ -593,6 +602,12 @@ def build_index_html(data: dict) -> str:
     <div id="empty" class="empty hidden">沒有符合的題目，試試其他關鍵字。</div>
   </main>
 </div>
+
+<nav class="bottom-nav" id="bottom-nav" aria-label="快速導覽">
+  <button type="button" class="bn-btn" id="bn-menu"><span class="bn-ico" aria-hidden="true">☰</span><span>分類</span></button>
+  <span class="bn-current" id="bn-current">{first_tech}</span>
+  <button type="button" class="bn-btn" id="bn-search"><span class="bn-ico" aria-hidden="true">⌕</span><span>搜尋</span></button>
+</nav>
 
 <script src="assets/data.js"></script>
 <script src="assets/app.js"></script>
@@ -608,8 +623,11 @@ def main():
         "window.__IP_DATA__ = " + json.dumps(data, ensure_ascii=False) + ";",
         encoding="utf-8",
     )
-    (ASSETS / "style.css").write_text(STYLE_CSS, encoding="utf-8")
-    (ASSETS / "app.js").write_text(APP_JS, encoding="utf-8")
+    # style.css and app.js are authored under site/assets/ (mobile RWD, etc.)
+    if not (ASSETS / "style.css").is_file():
+        (ASSETS / "style.css").write_text(STYLE_CSS, encoding="utf-8")
+    if not (ASSETS / "app.js").is_file():
+        (ASSETS / "app.js").write_text(APP_JS, encoding="utf-8")
     (SITE / "index.html").write_text(build_index_html(data), encoding="utf-8")
     print(f"Site built: {SITE/'index.html'}")
     print(f"Techs: {len(data['techs'])} | Total topics: {data['total']}")
