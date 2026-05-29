@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roy Lee · 後端面試準備</title>
+<meta name="description" content="Senior Go/Java 後端面試準備 · 223 題技術深度問答">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <span class="logo">roy<span class="pin">_</span>prep</span>
+      <span class="sub">SENIOR BACKEND · GO/JAVA</span>
+    </div>
+    <div class="search">
+      <span class="si">⌕</span>
+      <input id="search" type="search" placeholder="搜尋題目與答案…  (按 / 聚焦)" autocomplete="off" aria-label="搜尋">
+      <span class="kbd">/</span>
+    </div>
+    <div class="progress-wrap">
+      <span class="progress-num"><b id="p-done">0</b>/<span id="p-total">223</span> · <span id="p-pct">0%</span></span>
+      <div class="ring" id="ring" title="整體複習進度"></div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="side-title">技術分類</div>
+    <div id="side-nav" class="nav-scroll"></div>
+    <div class="side-foot">
+      進度自動存於此瀏覽器<br>localStorage
+      <br><button id="reset">清除複習紀錄</button>
+    </div>
+  </aside>
+
+  <main id="content">
+    <section class="hero">
+      <h1>面試準備</h1>
+      <p>以「核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 結合履歷」五段式整理的 Senior Go / Java 後端題庫，
+         涵蓋 Roy 在加密貨幣交易所（撮合、行情、對沖）與體育數據（Betradar、LMAX Disruptor）的實戰脈絡。
+         點題卡展開作答，勾選「已複習」自我追蹤。</p>
+      <div class="meta">
+        <span class="chip"><b>223</b> 題</span>
+        <span class="chip"><b>13</b> 項技術</span>
+        <span class="chip"><b>7</b> 個核心領域</span>
+        <span class="chip">繁體中文 · 可離線</span>
+      </div>
+    </section>
+    <div id="empty" class="empty hidden">沒有符合的題目，試試其他關鍵字。</div>
+  </main>
+</div>
+
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

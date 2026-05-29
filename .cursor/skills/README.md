@@ -1,6 +1,6 @@
 # Cursor Agent Skills — Resume & Career
 
-This folder contains two Cursor agent skills for resume writing, LinkedIn profile optimization, and job application workflows. Skills are automatically picked up by Cursor when you're working in this repo.
+This folder contains Cursor agent skills for resume writing, LinkedIn profile optimization, job application workflows, and building backend interview study material. Skills are automatically picked up by Cursor when you're working in this repo.
 
 ---
 
@@ -33,6 +33,21 @@ LinkedIn profile writing and career outreach. Auto-loads your resume for context
 | Experience entries | `把我的工作經歷改寫成 LinkedIn 格式` |
 | Cold recruiter message | `幫我寫一封冷連絡招募人員的 LinkedIn 訊息` |
 | Interview preparation | `針對這份 JD 和我的履歷，幫我準備面試題目和答案` |
+
+---
+
+### `interview-study-builder`
+
+Build senior-level backend interview study notes (繁體中文, 5-section Q&A) and the polished offline "study console" site under `interview-prep/`. Codifies the research → author → generate → build workflow and the fixed design system, so new technologies look identical to existing content.
+
+| Task | Example prompt |
+|---|---|
+| Add a new technology's interview prep | `幫我新增 Kotlin 的面試筆記` |
+| Author topics in the 5-section schema | `幫我把這些 Redis 題目整理成面試筆記格式` |
+| Regenerate notes + rebuild study site | `重新生成題庫並重建學習網站` |
+| Match the study site design | `用 study site 的設計風格呈現這些內容` |
+
+Supporting files: `design-tokens.md` (exact design system), `topic-module-template.py` (new topic module template).
 
 ---
 
