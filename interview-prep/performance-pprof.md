@@ -1,6 +1,6 @@
 # Performance / pprof 面試 Q&A
 
-> 來源：interview-go、tech-vault、Roy 生產調優實務
+> 來源：interview-go、tech-vault、生產調優實務
 > 題數：15 道 | 深度：Senior Backend 面試級
 > 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
 
@@ -27,18 +27,36 @@ CPU、Heap（alloc/inuse）、Goroutine、Mutex、Block、Trace（時間線）�
 - profile 時間太短
 
 **結合履歷：**
-Roy 生產調優：pprof、flame graph、logs、metrics。
+生產調優實務：pprof、flame graph、logs、metrics。
 
 ---
 ### Q: 如何讀火焰圖（Flame Graph）？
 
 **核心回答：**
-Y 軸棧深度，X 軸寬度=取樣佔比（非時間）。頂寬=hot function。看 platoe 找最佳化點。icicle 倒置版本。
+Y 軸棧深度，X 軸寬度=取樣佔比（非時間）。頂寬=hot function。看 plateau 找最佳化點。icicle 倒置版本。
 
 **深入原理：**
 - go tool pprof -http=:8080
 - focus/ignore 過濾
 - diff 兩個 profile
+
+```svg
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="火焰圖：X 軸寬度為取樣佔比，頂端最寬的框是 hot function">
+  <text x="330" y="24" fill="#56c2ff" font-size="13" font-weight="700" text-anchor="middle">Flame Graph：Y=堆疊深度，X=取樣佔比（非時間）</text>
+  <g font-size="11" text-anchor="middle">
+    <rect x="30" y="186" width="600" height="26" rx="3" fill="#56c2ff" fill-opacity="0.25" stroke="#56c2ff"/><text x="330" y="203" fill="#e7eaf2">runtime.main · 100%</text>
+    <rect x="30" y="156" width="410" height="26" rx="3" fill="#ffb454" fill-opacity="0.85"/><text x="235" y="173" fill="#0a0c11">ServeHTTP · 68%</text>
+    <rect x="444" y="156" width="186" height="26" rx="3" fill="#54dd9b" fill-opacity="0.5"/><text x="537" y="173" fill="#e7eaf2">gcBgMarkWorker</text>
+    <rect x="30" y="126" width="250" height="26" rx="3" fill="#ffb454"/><text x="155" y="143" fill="#0a0c11">queryKline · 42%</text>
+    <rect x="284" y="126" width="156" height="26" rx="3" fill="#c79cff" fill-opacity="0.6"/><text x="362" y="143" fill="#e7eaf2">encodeJSON</text>
+    <rect x="30" y="96" width="250" height="26" rx="3" fill="#ff6b6b" fill-opacity="0.85"/><text x="155" y="113" fill="#0a0c11">db.Query → syscall · 42%</text>
+  </g>
+  <path d="M16 200 L16 96" stroke="#6b7385" stroke-width="1.2" marker-end="url(#fg)"/>
+  <text x="12" y="150" fill="#6b7385" font-size="9" transform="rotate(-90 12 150)" text-anchor="middle">stack depth</text>
+  <text x="330" y="236" fill="#9aa3b5" font-size="10" text-anchor="middle">頂端最寬的框 = 最常出現在取樣堆疊頂端的函式 = 最佳化重點（此例為 DB 查詢路徑）</text>
+  <defs><marker id="fg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#6b7385"/></marker></defs>
+</svg>
+```
 
 **考官可能追問：**
 - Q: 寬但淺？
@@ -113,7 +131,7 @@ goroutine profile 看 stack 阻塞點；對比 baseline 數量；common：chan b
 - 無監控 goroutine 數
 
 **結合履歷：**
-Luxons：pprof 定位 HTTP 第三方 API 無 timeout 洩漏。
+實務：pprof 定位 HTTP 第三方 API 無 timeout 洩漏。
 
 ---
 ### Q: Mutex/Block profile 如何使用？
@@ -220,7 +238,7 @@ go test -bench -cpuprofile -memprofile；benchstat 對比；避免 dead code eli
 - 只最佳化區域性非 hot path
 
 **結合履歷：**
-Roy K線 3-5s→300-500ms：SP+index+ZSET+pprof 驗證。
+K線 3-5s→300-500ms：SP+index+ZSET+pprof 驗證。
 
 ---
 ### Q: 延遲排查：USE/RED 方法？

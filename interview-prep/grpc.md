@@ -1,6 +1,6 @@
 # gRPC 面試 Q&A
 
-> 來源：tech-vault、Roy 交易所/體育資料實務
+> 來源：tech-vault、交易所/體育資料實務
 > 題數：12 道 | 深度：Senior Backend 面試級
 > 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
 
@@ -27,7 +27,7 @@ gRPC 基於 HTTP/2、Protobuf 二進位制、強型別 schema（.proto）、支�
 - 無 deadline 呼叫掛死
 
 **結合履歷：**
-Roy 交易所 market/trading flow 用 gRPC 整合。
+交易所 market/trading flow 以 gRPC 整合。
 
 ---
 ### Q: Protobuf 編碼與版本相容？
@@ -75,22 +75,24 @@ Unary 一問一答；Server streaming 一發多收；Client streaming 多發一�
 ### Q: gRPC 負載均衡與服務發現？
 
 **核心回答：**
-Client-side LB：pick_first/round_robin；K8s headless+DNS；xDS/envoy 高階。Health checking GRPC Health Protocol。
+gRPC 跑在 HTTP/2 的**單一長連線多路複用**上，傳統 L4（連線級）負載均衡只會把整條連線導到一個 backend，所有 RPC 都壓在同一 pod → 無法均衡。因此 gRPC 多用 **client-side LB**：resolver 解析出一組位址（K8s headless service + DNS，或 xDS/Envoy 控制面），balancer（pick_first / round_robin）在 RPC 層級分流，再搭配 gRPC Health Checking Protocol 與 keepalive 剔除壞連線。
 
 **深入原理：**
-- name resolver plugin
-- keepalive 檢測 dead conn
-- subset LB
+- 為何 L4 LB 失效：HTTP/2 一條 TCP 連線承載多路 stream，L4 無法在 stream 層分流，會把流量釘在單一後端
+- client-side LB：name resolver（DNS/xDS）回傳位址清單，balancer 在 RPC 層輪詢，pod 增減由 resolver 更新
+- K8s 用 headless service 讓 DNS 直接回傳 pod IP 清單（而非單一 ClusterIP）；大規模用 xDS/Envoy（sidecar 或 proxyless）
+- keepalive ping 檢測 dead connection；Health Protocol 讓 balancer 避開未就緒 pod
 
 **考官可能追問：**
 - Q: K8s 用？
-  - A: service mesh istio
+  - A: headless service+DNS 或 service mesh istio/xDS
 - Q: sticky？
-  - A: consistent hash filter
+  - A: consistent hash filter（xDS）
 
 **常見陷阱 / 易錯點：**
-- L4 LB 不懂 HTTP/2 多路
+- 誤用 L4 LB 導致流量壓單 pod
 - 無 health check 連 dead pod
+- DNS resolver 不感知頻繁擴縮容
 
 ---
 ### Q: gRPC 攔截器（Interceptor）用途？
@@ -177,7 +179,7 @@ context.WithTimeout 設 deadline；子 call 繼承；cancel 傳播終止下游�
 - DB 查詢 ignore ctx
 
 **結合履歷：**
-Roy 將 client disconnect 經 context 傳到下游。
+實務上將 client disconnect 經 context 傳到下游。
 
 ---
 ### Q: gRPC 安全：TLS/mTLS？

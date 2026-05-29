@@ -1,4 +1,4 @@
-# Roy Lee 後端面試準備（Senior 深度版）
+# 後端面試準備（Senior 深度版）
 
 > Senior Backend Engineer | Go & Java  
 > 最後更新：2026-05-29  
@@ -16,7 +16,7 @@
 **深入原理：** （實作/底層 WHY）
 **考官可能追問：** Q→A
 **常見陷阱 / 易錯點：**
-**結合履歷：** （Roy 相關經驗，可選）
+**結合履歷：** （相關實務經驗，可選）
 ```
 
 **目標：** 僅憑此筆記可撐過 45–60 分鐘 Senior Backend 技術面試（含原理追問）。
@@ -62,7 +62,7 @@
 | 1–2 | Go（GMP/GC/channel/map/sync） | 35 | 能白板講 GMP、GC 三色、channel 關閉語義 |
 | 3 | Redis（結構/持久化/叢集/快取問題） | 20 | 能設計 K 線 ZSET + 穿透/擊穿方案 |
 | 4 | MySQL（InnoDB/MVCC/索引/日誌） | 20 | 能 EXPLAIN + 講 redo/undo/binlog |
-| 5 | Performance / pprof | 15 | 能說 Roy K 線最佳化案例 + 讀 flame graph |
+| 5 | Performance / pprof | 15 | 能說 K 線最佳化案例 + 讀 flame graph |
 | 6–7 | 複習 + 模擬：每技術抽 5 題口述 | — | 每題 3 分鐘核心回答 + 2 分鐘追問 |
 
 ### 第 2 週：訊息 + 協議 + 設計
@@ -80,8 +80,8 @@
 
 | 天 | 主題 | 題數 | 目標 |
 |----|------|------|------|
-| 15 | Java / Spring Boot | 15 | Apezgo 重構 + 事務/AOP 追問 |
-| 16 | Docker / AWS | 15 | HRM Compose + RDS/ElastiCache |
+| 15 | Java / Spring Boot | 15 | Spring Boot 重構 + 事務/AOP 追問 |
+| 16 | Docker / AWS | 15 | Docker Compose + RDS/ElastiCache |
 | 17–21 | 弱項重讀 + 履歷 STAR 每亮點 5 分鐘 | — | K線/Disruptor/Betradar/notification |
 
 ---
@@ -92,8 +92,8 @@
 2. **交易所 sole Go owner**：matching、market data、liquidity、hedging、gRPC/WS/RocketMQ  
 3. **體育資料**：Betradar 接入、Kafka、LMAX Disruptor 並行、>1000ms → 亞秒  
 4. **生產調優**：pprof、flame graph、Redis 快取穿透修復  
-5. **Spring Boot 重構**：Apezgo Struts → Spring Boot + Jenkins CI/CD  
-6. **AI 輔助交付**：Cursor、MCP、agents、RAG（HRM 全棧專案）
+5. **Spring Boot 重構**：Struts → Spring Boot + Jenkins CI/CD  
+6. **AI 輔助交付**：Cursor、MCP、agents、RAG（全棧專案）
 
 ---
 

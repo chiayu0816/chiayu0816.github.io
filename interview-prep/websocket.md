@@ -1,6 +1,6 @@
 # WebSocket 面試 Q&A
 
-> 來源：tech-vault、Roy 行情推送實務
+> 來源：tech-vault、行情推送實務
 > 題數：12 道 | 深度：Senior Backend 面試級
 > 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
 
@@ -174,7 +174,7 @@ gorilla/websocket 或 nhooyr：SetReadDeadline、PingHandler、併發寫需 Mute
 - handler 阻塞 read loop
 
 **結合履歷：**
-Roy 交易所 WebSocket 推 market data。
+交易所場景以 WebSocket 推 market data。
 
 ---
 ### Q: Order book / 行情推送架構？
@@ -222,7 +222,7 @@ Matching engine→MQ→WS gateway；snapshot+delta；seq id；client 先 snapsho
 ### Q: 與 gRPC streaming 的分工？
 
 **核心回答：**
-內部服務 gRPC；對外客戶端 WS/REST。gateway 轉換。Roy：gRPC 內部 trading flow，WS 推 ticker/K線。
+內部服務 gRPC；對外客戶端 WS/REST。gateway 轉換。實務上 gRPC 走內部 trading flow，WS 推 ticker/K線。
 
 **深入原理：**
 - 統一 event schema

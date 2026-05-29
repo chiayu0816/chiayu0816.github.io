@@ -34,6 +34,10 @@ def fmt(q: dict) -> str:
     lines = [f"### Q: {q['q']}", "", "**核心回答：**", q["core"], "", "**深入原理：**"]
     for b in q.get("dive", []):
         lines.append(f"- {b}")
+    if q.get("svg"):
+        # Inline SVG diagram, kept inside the 深入原理 section. Fenced as ```svg```
+        # so build_site.py renders it as raw html instead of escaping it.
+        lines += ["", "```svg", q["svg"].strip(), "```"]
     lines += ["", "**考官可能追問：**"]
     for fq, fa in q.get("followups", []):
         lines += [f"- Q: {fq}", f"  - A: {fa}"]
@@ -97,27 +101,27 @@ COUNTS["kafka"] = write_file(
 )
 COUNTS["rocketmq"] = write_file(
     "rocketmq.md", "RocketMQ 面試 Q&A",
-    "tech-vault、Roy 交易所實務",
+    "tech-vault、交易所實務",
     ROCKETMQ_TOPICS,
 )
 COUNTS["grpc"] = write_file(
     "grpc.md", "gRPC 面試 Q&A",
-    "tech-vault、Roy 交易所/體育數據實務",
+    "tech-vault、交易所/體育數據實務",
     GRPC_TOPICS,
 )
 COUNTS["websocket"] = write_file(
     "websocket.md", "WebSocket 面試 Q&A",
-    "tech-vault、Roy 行情推送實務",
+    "tech-vault、行情推送實務",
     WEBSOCKET_TOPICS,
 )
 COUNTS["mongodb"] = write_file(
     "mongodb.md", "MongoDB 面試 Q&A",
-    "tech-vault、Roy INNO/Gongying 實務",
+    "tech-vault、體育/客服實務",
     MONGODB_TOPICS,
 )
 COUNTS["rabbitmq"] = write_file(
     "rabbitmq.md", "RabbitMQ 面試 Q&A",
-    "tech-vault、Roy INNO 體育數據實務",
+    "tech-vault、體育數據實務",
     RABBITMQ_TOPICS,
 )
 COUNTS["system-design"] = write_file(
@@ -127,17 +131,17 @@ COUNTS["system-design"] = write_file(
 )
 COUNTS["performance-pprof"] = write_file(
     "performance-pprof.md", "Performance / pprof 面試 Q&A",
-    "interview-go、tech-vault、Roy 生產調優實務",
+    "interview-go、tech-vault、生產調優實務",
     PPROF_TOPICS,
 )
 COUNTS["java-spring-boot"] = write_file(
     "java-spring-boot.md", "Java / Spring Boot 面試 Q&A",
-    "tech-vault、Roy Apezgo/INNO 實務",
+    "tech-vault、Spring Boot 重構實務",
     JAVA_TOPICS,
 )
 COUNTS["docker-aws"] = write_file(
     "docker-aws.md", "Docker / AWS 面試 Q&A",
-    "tech-vault、Roy HRM Docker Compose / AWS 實務",
+    "tech-vault、Docker Compose / AWS 實務",
     DOCKER_AWS_TOPICS,
 )
 

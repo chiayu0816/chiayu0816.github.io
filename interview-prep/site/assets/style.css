@@ -239,6 +239,11 @@ pre.code code{
   background:none;border:none;padding:0;white-space:pre;
 }
 .code-lang{position:absolute;top:7px;right:10px;font-family:var(--mono);font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em}
+.diagram{
+  margin:12px 0 4px;padding:16px 14px;background:#0b0e15;border:1px solid var(--border);
+  border-radius:var(--radius-sm);overflow-x:auto;-webkit-overflow-scrolling:touch;text-align:center;
+}
+.diagram svg{display:block;max-width:100%;height:auto;margin:0 auto;font-family:var(--mono)}
 .fu{margin:8px 0;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm)}
 .fu .fq{font-size:14px;line-height:1.5;color:var(--text);font-weight:600}
 .fu .fq::before{content:"Q ";font-family:var(--mono);color:var(--c-ask);font-weight:700}

@@ -12,7 +12,37 @@ KAFKA_TOPICS = [
      "dive": ["__consumer_offsets 内部 topic", "Static membership 减 rebalance", "Cooperative sticky assignor"],
      "followups": [("Consumer 多于 partition？", "闲置"), ("跨 group 消费？", "各自独立 offset")],
      "pitfalls": ["Rebalance 期间 stop-the-world 消费", "处理慢导致 rebalance 循环"],
-     "resume": "Roy 在 Luxons/INNO 用 Kafka 分发体育数据到下游。"},
+     "svg": """
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kafka partition 與 consumer group 對應關係">
+  <text x="330" y="24" fill="#56c2ff" font-size="13" font-weight="700" text-anchor="middle">Topic（3 partitions） → Consumer Group（2 consumers）</text>
+  <g>
+    <rect x="40" y="46" width="350" height="30" rx="5" fill="#0d1017" stroke="#2f3645"/>
+    <text x="62" y="66" fill="#ffb454" font-size="12">P0</text>
+    <rect x="92" y="50" width="44" height="22" fill="#ffb454" opacity="0.85"/><rect x="140" y="50" width="44" height="22" fill="#ffb454" opacity="0.6"/><rect x="188" y="50" width="44" height="22" fill="#ffb454" opacity="0.4"/>
+    <rect x="40" y="92" width="350" height="30" rx="5" fill="#0d1017" stroke="#2f3645"/>
+    <text x="62" y="112" fill="#ffb454" font-size="12">P1</text>
+    <rect x="92" y="96" width="44" height="22" fill="#ffb454" opacity="0.85"/><rect x="140" y="96" width="44" height="22" fill="#ffb454" opacity="0.6"/>
+    <rect x="40" y="138" width="350" height="30" rx="5" fill="#0d1017" stroke="#2f3645"/>
+    <text x="62" y="158" fill="#ffb454" font-size="12">P2</text>
+    <rect x="92" y="142" width="44" height="22" fill="#ffb454" opacity="0.85"/><rect x="140" y="142" width="44" height="22" fill="#ffb454" opacity="0.6"/><rect x="188" y="142" width="44" height="22" fill="#ffb454" opacity="0.4"/>
+  </g>
+  <text x="334" y="64" fill="#6b7385" font-size="10">offset →</text>
+  <rect x="452" y="40" width="190" height="138" rx="8" fill="none" stroke="#c79cff" stroke-width="1.3"/>
+  <text x="547" y="58" fill="#c79cff" font-size="11" text-anchor="middle">Consumer Group G1</text>
+  <rect x="466" y="70" width="162" height="40" rx="6" fill="#13161f" stroke="#56c2ff" stroke-width="1.4"/>
+  <text x="547" y="94" fill="#56c2ff" font-size="12" text-anchor="middle">Consumer 1（P0,P1）</text>
+  <rect x="466" y="124" width="162" height="40" rx="6" fill="#13161f" stroke="#56c2ff" stroke-width="1.4"/>
+  <text x="547" y="148" fill="#56c2ff" font-size="12" text-anchor="middle">Consumer 2（P2）</text>
+  <g stroke="#54dd9b" stroke-width="1.5" marker-end="url(#kf)" fill="none">
+    <path d="M390 61 L464 84"/>
+    <path d="M390 107 L464 94"/>
+    <path d="M390 153 L464 144"/>
+  </g>
+  <text x="330" y="214" fill="#9aa3b5" font-size="11" text-anchor="middle">分區內嚴格有序；同 group 內一個 partition 只給一個 consumer；consumer 數 &gt; partition 數則多的閒置</text>
+  <defs><marker id="kf" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#54dd9b"/></marker></defs>
+</svg>
+""".strip(),
+     "resume": "實務上用 Kafka 分发体育数据到多个下游。"},
     {"q": "Offset 提交策略？",
      "core": "Auto commit 默认 5s 可能丢或重复；手动 commit 处理完再 commit 至少一次。Exactly-once 需 transactional + idempotent producer。Seek 可重置位点。",
      "dive": ["enable.auto.commit=false", "commitSync vs commitAsync", "__consumer_offsets compact"],
@@ -24,31 +54,41 @@ KAFKA_TOPICS = [
      "followups": [("多 partition 订单状态？", "key=orderId"), ("乱序检测？", "version 字段")],
      "pitfalls": ["多线程处理同一 partition", "retry 未设 idempotence"]},
     {"q": "Exactly-once 语义如何实现？",
-     "core": "Idempotent Producer（PID+sequence 防重）+ Transactions（原子写多 partition + consumer offset）。read-process-write 链需 Kafka Streams 或自己协调。",
-     "dive": ["transactional.id", "commitTransaction", "EOS in streams"],
-     "followups": [("与 DB 一致？", "Outbox pattern"), ("性能代价？", "事务协调开销")],
-     "pitfalls": ["以为默认 exactly-once", "transaction timeout 过短"]},
+     "core": "Kafka 的 exactly-once 不是魔法，而是**冪等 Producer + 事務**兩層疊加：冪等 Producer 讓 broker 以 (PID, partition, sequence) 去重，消除『重試造成單分區內重複寫』；事務再把『寫多個 partition + 提交 consumer offset』包成一個原子單位，配合 consumer 端 `isolation.level=read_committed` 只讀已提交訊息。完整的 read-process-write（消費→處理→再產出）EOS 需用 Kafka Streams 或自行以同一個 `transactional.id` 協調。",
+     "dive": [
+        "冪等：Producer 啟動取得 PID + epoch，broker 為每個 (PID, partition) 維護遞增 sequence，重複或亂序的 sequence 直接丟棄",
+        "事務：`transactional.id` 跨 session 識別同一邏輯 Producer；beginTransaction/commitTransaction 在 log 寫入 transaction marker，未提交訊息對 read_committed consumer 不可見",
+        "用 `sendOffsetsToTransaction` 把消費位移與輸出寫入放進同一事務，確保『位移與處理結果同生共死』",
+        "epoch 做 fencing：同 transactional.id 但 epoch 較舊的殭屍 Producer 會被 broker 拒絕，避免重複寫",
+     ],
+     "followups": [("与 DB 一致？", "Kafka 事务无法跨 DB；用 Outbox pattern 让业务与消息同事务落库再投递"), ("性能代价？", "事务协调与 marker 写入有开销，吞吐下降，需权衡")],
+     "pitfalls": ["以为默认 exactly-once（默认是 at-least-once）", "只开 idempotence 就以为有跨 partition 原子性（需 transaction）", "transaction timeout 过短导致中断"]},
     {"q": "Rebalance 触发条件与优化？",
      "core": "Consumer 加入/离开、partition 数变、session 超时（heartbeat 失败）、processing 超过 max.poll.interval。优化：增大 timeout、减 batch、cooperative rebalance、static group.instance.id。",
      "dive": ["heartbeat 3s session 45s 默认", "GC pause 导致 missed heartbeat", "incremental cooperative"],
      "followups": [("Rebalance listener？", "revoke 前 flush"), ("为何 stop consumption？", "旧协议 revoke 全部")],
      "pitfalls": ["长处理不 poll", "过多 consumer 频繁 join"]},
     {"q": "Kafka vs RocketMQ 对比？",
-     "core": "Kafka：高吞吐 log 流、生态强、延迟 ms 级。RocketMQ：金融级、Tag 过滤、延迟消息、事务消息原生、顺序+定时成熟。Roy 交易所用 RocketMQ 交易流。",
+     "core": "Kafka：高吞吐 log 流、生态强、延迟 ms 级。RocketMQ：金融级、Tag 过滤、延迟消息、事务消息原生、顺序+定时成熟。交易所场景常用 RocketMQ 承载交易流。",
      "dive": ["Kafka pull long poll", "RMQ push/pull 混合", "Kafka 适合大数据 pipeline"],
      "followups": [("选型？", "日志/analytics→Kafka；交易/订单→RMQ"), ("都支持事务吗？", "RMQ 半消息更业务化")],
      "pitfalls": ["用 Kafka 当 RPC", "忽视 Topic 规划"],
-     "resume": "Roy：交易所 RocketMQ 交易/market flow；体育数据 Kafka 高吞吐分发。"},
+     "resume": "實務經驗：交易所用 RocketMQ 承载交易/market flow；体育数据用 Kafka 高吞吐分发。"},
     {"q": "Producer acks 与可靠性？",
      "core": "acks=0  fire-and-forget；acks=1 leader 写成功；acks=all/-1 等 ISR 全部 ack。配合 min.insync.replicas=2 防单点。retries 可能重复需幂等。",
      "dive": ["unclean.leader.election", "replication.factor", "linger.ms batch 吞吐"],
      "followups": [("消息丢失场景？", "leader 宕未同步"), ("延迟 vs 可靠？", "acks=all + sync")],
      "pitfalls": ["acks=1 且 unclean election", "未开 idempotence 重试重复"]},
     {"q": "Kafka 存储机制与 retention？",
-     "core": "Partition log 追加写 segment 文件，顺序写磁盘接近内存速度。Retention 按时间或大小删除旧 segment。Compact topic 保留最新 key。",
-     "dive": [".log .index .timeindex", "zero-copy sendfile", "页缓存利用"],
-     "followups": [("无限保留？", "磁盘成本+replay 慢"), ("Compact 用途？", "changelog KV")],
-     "pitfalls": ["磁盘满 broker 挂", "单 broker 无 replication"]},
+     "core": "Kafka 把每個 partition 當成**只能追加（append-only）的 log**，訊息順序寫入 segment 檔；順序寫避免隨機 IO 的尋道成本，吞吐接近記憶體。消費時用**零拷貝（sendfile）**直接把 page cache 的資料送進 socket，省去 user space 來回拷貝與 GC 壓力。Retention 以時間或大小**刪除整個舊 segment**（非逐筆刪）；compact topic 則只保留每個 key 的最新值，適合 changelog/KV 快照。",
+     "dive": [
+        "每個 partition 切成多個 segment：`.log`（訊息）、`.index`（offset→實體位置）、`.timeindex`（時間→offset），查找用二分搜尋",
+        "順序寫 + OS page cache：寫入先進 page cache 由 OS 批次刷盤，讀取多半命中 cache，broker 幾乎不碰磁碟隨機 IO",
+        "零拷貝 sendfile：資料不經 JVM heap，由 DMA 直送網卡，大幅降低 CPU 與 GC 壓力",
+        "retention 以 segment 為刪除單位；compact 由 log cleaner 背景合併，保留每 key 最新值（tombstone 代表刪除）",
+     ],
+     "followups": [("无限保留？", "磁盘成本高+replay 慢；常配分层存储或转 compact"), ("Compact 用途？", "保留每 key 最新值，如 changelog KV、状态快照")],
+     "pitfalls": ["磁盘满 broker 挂", "单 broker 无 replication 丢数据", "误以为零拷贝对压缩消息仍生效（需解压则失效）"]},
     {"q": "Consumer lag 如何监控与处理？",
      "core": "Lag = log end offset - consumer offset。Burrow 或 Kafka exporter 监控。Lag 增：consumer 慢、partition 少、下游阻塞。扩 partition+consumer、优化处理、异步化。",
      "dive": ["records-lag-max", "告警阈值", "dead letter queue"],
@@ -79,7 +119,7 @@ KAFKA_TOPICS = [
      "dive": ["key=matchId 保序", "多 topic 按 sport/type", "与 LMAX Disruptor 内部分类配合"],
      "followups": [("延迟要求 sub-second？", "partition 足够+consumer 并行"), ("峰值赛事？", "auto scale consumer")],
      "pitfalls": ["单 topic 过大", "consumer 同步 HTTP 阻塞"],
-     "resume": "Roy：Betradar onboarding、Kafka 下游分发、LMAX 降延迟 >1000ms。"},
+     "resume": "實務經驗：Betradar onboarding、Kafka 下游分发、LMAX Disruptor 降延迟 >1000ms。"},
 ]
 
 ROCKETMQ_TOPICS = [
@@ -88,7 +128,7 @@ ROCKETMQ_TOPICS = [
      "dive": ["Broker 与 NameServer 心跳", "Topic→Queue 映射", "Dledger 自动主从切换"],
      "followups": [("NameServer 无 ZK？", "去中心化路由"), (" vs Kafka broker？", "RMQ 多队列 per topic")],
      "pitfalls": ["NameServer 全挂需重启路由", "Broker 磁盘满"],
-     "resume": "Roy 交易所 gRPC/WS 集成 RocketMQ 做 market/trading flow。"},
+     "resume": "交易所場景以 gRPC/WS 集成 RocketMQ 承载 market/trading flow。"},
     {"q": "Topic、Tag、MessageQueue 关系？",
      "core": "Topic 逻辑分类；Tag 子过滤（SQL92 订阅）；MessageQueue 是实际存储分片（类似 Kafka partition）。Consumer 订阅 Topic+Tag 过滤。",
      "dive": ["一个 Topic 多 Queue 并行", "Tag hash 不影响队列选择", "Key 决定队列保序"],
@@ -109,7 +149,7 @@ ROCKETMQ_TOPICS = [
      "dive": ["Half message 对消费者不可见", "回查次数限制", "与 Kafka transaction 对比"],
      "followups": [("回查失败？", "rollback 消息"), ("场景？", "扣库存+发订单消息")],
      "pitfalls": ["本地事务已提交回查失败", "回查逻辑非幂等"],
-     "resume": "Roy 交易所可用事务消息保证 trading 状态与下游通知一致。"},
+     "resume": "交易所場景可用事务消息保证 trading 状态与下游通知一致。"},
     {"q": "RocketMQ 消费模式 Push vs Pull？",
      "core": "Push 是长轮询封装，Broker 有消息即推；Pull 消费者主动拉。Clustering 负载均衡；Broadcast 每实例全收。",
      "dive": ["Push 背压 consumeConcurrentlyMaxSpan", "Pull 适合流控", "Rebalance 类似 Kafka"],
@@ -145,7 +185,7 @@ ROCKETMQ_TOPICS = [
      "dive": ["Topic 按 domain 分", "关键路径 sync gRPC", "MQ 削峰填谷"],
      "followups": [("延迟敏感撮合？", "内存+RPC 主路径 MQ 辅助"), ("合规 audit？", "消息轨迹 MessageTrace")],
      "pitfalls": ["所有路径走 MQ", "消息无序导致状态错"],
-     "resume": "Roy sole Go owner：matching/market data/hedging 经 RocketMQ 集成。"},
+     "resume": "交易所場景（matching/market data/hedging）经 RocketMQ 集成解耦。"},
 ]
 
 RABBITMQ_TOPICS = [
@@ -165,10 +205,15 @@ RABBITMQ_TOPICS = [
      "followups": [("处理中 crash？", "unack 重投"), ("confirm 模式？", "异步 callback")],
      "pitfalls": ["auto ack+处理失败丢消息", "忘记 ack 堆积"]},
     {"q": "持久化与 durability？",
-     "core": "Queue durable、message deliveryMode=2 持久化到磁盘。Exchange durable。仍可能丢：未 confirm、集群镜像 lag。",
-     "dive": ["lazy queue 大数据", "quorum queue Raft", "classic mirrored 已 deprecated"],
-     "followups": [("Quorum queue？", "3.8+ 推荐高可靠"), ("性能？", "持久化慢于内存")],
-     "pitfalls": ["durable queue 但消息 transient", "磁盘慢阻塞 publish"]},
+     "core": "要真正不丟訊息需**三者同時成立**：queue 宣告為 durable（重啟仍存在）、訊息 deliveryMode=2（持久化到磁碟）、Publisher Confirm（等 broker 落盤/複製後才確認）。只設其一仍會丟：durable queue 配 transient 訊息，重啟照樣不見。且**單機持久化 ≠ 高可用**——節點掛掉佇列仍不可用，要 HA 需 quorum queue（Raft 多副本）。",
+     "dive": [
+        "Publisher Confirm 是非同步 ack：broker 持久化（或複製到 quorum 多數）後才回 ack，未 ack 的訊息應重送",
+        "Quorum queue（3.8+，基於 Raft）多副本強一致，取代已 deprecated 的 classic mirrored queue",
+        "lazy queue 直接把訊息落盤、減少記憶體佔用，適合大量堆積；代價是吞吐低於純記憶體",
+        "持久化只保證『落到該節點磁碟』，跨節點可靠性靠 quorum 複製多數派",
+     ],
+     "followups": [("Quorum queue？", "3.8+ 推荐高可靠，Raft 多副本"), ("性能？", "持久化+confirm 慢于内存，吞吐与可靠性需权衡")],
+     "pitfalls": ["durable queue 但消息 transient 仍丢", "只持久化不 confirm，落盘前 crash 仍丢", "磁盘慢阻塞 publish"]},
     {"q": "Dead Letter Exchange（DLX）？",
      "core": "Queue 设 x-dead-letter-exchange；消息 reject/expire/queue满 进 DLQ。用于重试耗尽、 poison message、延迟（TTL+DLX）。",
      "dive": ["x-message-ttl", "retry 计数 headers", "DLQ 监控告警"],
@@ -185,7 +230,7 @@ RABBITMQ_TOPICS = [
      "followups": [("镜像队列迁移？", "迁 quorum"), ("脑裂？", "quorum 多数派")],
      "pitfalls": ["classic 单点 queue node 挂丢服务", "跨 DC 镜像延迟"]},
     {"q": "RabbitMQ vs Kafka/RocketMQ？",
-     "core": "Rabbit：低延迟、复杂路由、消息删除即无；Kafka/RMQ：log 可回溯、高吞吐。Roy INNO 用 Rabbit 分发部分体育数据。",
+     "core": "Rabbit：低延迟、复杂路由、消息删除即无；Kafka/RMQ：log 可回溯、高吞吐。體育數據場景曾用 Rabbit 分发部分数据。",
      "dive": ["Rabbit 适合 task queue RPC", "Kafka 适合 event stream", "RMQ 中间"],
      "followups": [("何时选 Rabbit？", "路由灵活、中小吞吐、AMQP"), ("消息回溯？", "Rabbit 消费即删")],
      "pitfalls": ["Rabbit 当 log 平台", "大 backlog 内存爆"]},
@@ -204,10 +249,10 @@ RABBITMQ_TOPICS = [
      "dive": ["Kafka 式用 sharding key", "requeue 可能乱序", "exclusive consumer"],
      "followups": [("失败重试顺序？", "顺序消费需 suspend"), ("并行？", "多 queue 分 key")],
      "pitfalls": ["多 consumer 要全局顺序", "requeue 插入队首破坏"]},
-    {"q": "RabbitMQ 在 Roy 体育数据项目中的角色？",
-     "core": "INNO 时期与 Kafka 并用：Betgenius/Betradar 数据经 REST+Kafka+Rabbit 多通道分发下游，Rabbit 适合特定订阅路由。",
+    {"q": "RabbitMQ 在体育数据项目中的角色？",
+     "core": "與 Kafka 并用：Betgenius/Betradar 数据经 REST+Kafka+Rabbit 多通道分发下游，Rabbit 适合特定订阅路由。",
      "dive": ["Topic exchange 按 sport", "与 Redis/MySQL 配合", "legacy 系统 AMQP 集成"],
      "followups": [("为何多 MQ？", "历史+不同团队"), ("统一？", "逐步 Kafka/RMQ")],
      "pitfalls": ["双写不一致", "运维多套 MQ"],
-     "resume": "Roy INNO：multi-vendor sports data via REST/Kafka/RabbitMQ。"},
+     "resume": "體育數據實務：multi-vendor sports data via REST/Kafka/RabbitMQ。"},
 ]

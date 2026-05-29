@@ -16,7 +16,36 @@ REDIS_TOPICS = [
             ("intset 何時用？", "set 全為整數且元素少時"),
         ],
         "pitfalls": ["大 ziplist 轉 hashtable 造成 latency spike", "誤用 KEYS * 阻塞"],
-        "resume": "Roy 用 Redis ZSET 重構 K 線快取，將圖表載入從 3–5s 降至 300–500ms。",
+        "svg": """
+<svg viewBox="0 0 660 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="skiplist 多層索引結構，查詢平均 O(log N)">
+  <text x="330" y="22" fill="#56c2ff" font-size="13" font-weight="700" text-anchor="middle">skiplist：上層稀疏索引，查詢平均 O(log N)</text>
+  <text x="18" y="62" fill="#9aa3b5" font-size="10">L2</text>
+  <text x="18" y="110" fill="#9aa3b5" font-size="10">L1</text>
+  <text x="18" y="158" fill="#9aa3b5" font-size="10">L0</text>
+  <g font-size="12" text-anchor="middle">
+    <rect x="25" y="43" width="46" height="30" rx="5" fill="#0d1017" stroke="#54dd9b"/><text x="48" y="63" fill="#54dd9b">head</text>
+    <rect x="283" y="43" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="306" y="63" fill="#ffb454">19</text>
+    <rect x="543" y="43" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="566" y="63" fill="#ffb454">38</text>
+    <rect x="25" y="91" width="46" height="30" rx="5" fill="#0d1017" stroke="#54dd9b"/><text x="48" y="111" fill="#54dd9b">head</text>
+    <rect x="153" y="91" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="176" y="111" fill="#ffb454">7</text>
+    <rect x="283" y="91" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="306" y="111" fill="#ffb454">19</text>
+    <rect x="543" y="91" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="566" y="111" fill="#ffb454">38</text>
+    <rect x="25" y="139" width="46" height="30" rx="5" fill="#0d1017" stroke="#54dd9b"/><text x="48" y="159" fill="#54dd9b">head</text>
+    <rect x="153" y="139" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="176" y="159" fill="#ffb454">7</text>
+    <rect x="283" y="139" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="306" y="159" fill="#ffb454">19</text>
+    <rect x="413" y="139" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="436" y="159" fill="#ffb454">26</text>
+    <rect x="543" y="139" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="566" y="159" fill="#ffb454">38</text>
+  </g>
+  <g stroke="#56c2ff" stroke-width="1.4" marker-end="url(#sk)">
+    <path d="M71 58 L283 58"/><path d="M329 58 L543 58"/>
+    <path d="M71 106 L153 106"/><path d="M199 106 L283 106"/><path d="M329 106 L543 106"/>
+    <path d="M71 154 L153 154"/><path d="M199 154 L283 154"/><path d="M329 154 L413 154"/><path d="M459 154 L543 154"/>
+  </g>
+  <text x="330" y="196" fill="#9aa3b5" font-size="10" text-anchor="middle">向右走過頭就下降一層，逐層逼近目標 → ZSET range/score 查詢 O(log N)</text>
+  <defs><marker id="sk" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#56c2ff"/></marker></defs>
+</svg>
+""".strip(),
+        "resume": "實務上用 Redis ZSET 重構 K 線快取，將圖表載入從 3–5s 降至 300–500ms。",
     },
     {
         "q": "SDS 與 C 字串有何不同？",
@@ -38,7 +67,7 @@ REDIS_TOPICS = [
         "dive": ["rewrite 期間增量 buf 累積", "混合持久化 RDB+AOF header 加速恢復", "auto-aof-rewrite-min-size/percentage"],
         "followups": [("線上選 everysec？", "多數場景平衡"), ("rewrite 阻塞？", "fork+寫新檔，主進程仍服務")],
         "pitfalls": ["AOF 檔無限增長未 rewrite", "always 在 SSD 上仍可能拖垮 IOPS"],
-        "resume": "Roy 在交易所場景評估 RPO：行情快取可重建用 RDB+短 AOF；關鍵狀態需 everysec 或混合。",
+        "resume": "在交易所場景評估 RPO：行情快取可重建用 RDB+短 AOF；關鍵狀態需 everysec 或混合。",
     },
     {
         "q": "Redis 主從複製流程？",
@@ -67,7 +96,7 @@ REDIS_TOPICS = [
         "dive": ["singleflight 合併回源", "Redis 集群分片降低單點", "本地 cache+Redis 二級"],
         "followups": [("布隆 false positive？", "存在可能誤判，不存在一定不存在"), ("互斥鎖用 SETNX？", "需過期+唯一 value+Lua 釋放")],
         "pitfalls": ["空值快取 TTL 過長占滿", "互斥鎖未釋放死鎖"],
-        "resume": "Luxons 修復 Redis 快取穿透：空值快取 + 布隆過濾非法 ID。",
+        "resume": "實務上修復 Redis 快取穿透：空值快取 + 布隆過濾非法 ID。",
     },
     {
         "q": "Redis 分散式鎖如何實現？Redlock 爭議？",
@@ -82,7 +111,7 @@ REDIS_TOPICS = [
         "dive": ["Redis 6 IO threads 只加速 network", "hot key 發現：monitor、redis-cli --hotkeys", "big key：--bigkeys 掃描"],
         "followups": [("Cluster hot slot？", "reshard 或 hashtag 打散"), ("ZSET 百萬 member？", "按時間分 key")],
         "pitfalls": ["KEYS 找 big key 生產禁用", "熱 key 本地 cache 不一致"],
-        "resume": "Roy K 線 ZSET 按 symbol+interval 分 key，避免單 key 百萬 candle。",
+        "resume": "K 線 ZSET 按 symbol+interval 分 key，避免單 key 百萬 candle。",
     },
     {
         "q": "Redis 6 Threaded I/O 解決什麼？",
@@ -97,7 +126,7 @@ REDIS_TOPICS = [
         "dive": ["先刪 cache 再寫 DB 仍可能不一致", "binlog+MQ 异步刷新", "version 字段拒舊寫"],
         "followups": [("先更新 DB 還 cache？", "一般先 DB 再刪 cache"), ("双写失败？", "重试+补偿+对账")],
         "pitfalls": ["更新 cache 而非删除导致并发脏读", "无 TTL 兜底"],
-        "resume": "Roy 架構：K 線寫 MySQL SP 後刪/更新 Redis ZSET，讀以 cache 為主、DB 為 fallback。",
+        "resume": "實務架構：K 線寫 MySQL SP 後刪/更新 Redis ZSET，讀以 cache 為主、DB 為 fallback。",
     },
     {
         "q": "Pipeline 與 Transaction 差異？",
@@ -154,7 +183,7 @@ REDIS_TOPICS = [
         "dive": ["定期 trim ZREMRANGEBYRANK", "与 MySQL SP 聚合分工", "MGET 多 symbol 并行"],
         "followups": [("毫秒 K 线？", "score 用 ms 时间戳"), ("duplicate candle？", "ZADD NX 或 version in member")],
         "pitfalls": ["单 key 存全历史", "无 trim 内存爆炸"],
-        "resume": "Roy 實際優化：MySQL SP 聚合 + Redis ZSET 分 key + index rebuild，延遲 3–5s→300–500ms。",
+        "resume": "實際優化：MySQL SP 聚合 + Redis ZSET 分 key + index rebuild，延遲 3–5s→300–500ms。",
     },
 ]
 
@@ -172,7 +201,36 @@ MYSQL_TOPICS = [
         "dive": ["页默认 16KB", "聚簇索引叶子=行数据", "二级索引叶子=PK 值需回表"],
         "followups": [("为何不用红黑树？", "磁盘 IO 次数多"), ("UUID PK 问题？", "随机插入页分裂")],
         "pitfalls": ["过宽 PK 增大二级索引", "函数索引前导列失效"],
-        "resume": "Roy K 线表 rebuild index 优化 time range 查询。",
+        "svg": """
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="B+ 樹：非葉只存 key，葉子鏈結支援 range scan">
+  <g text-anchor="middle" font-size="12">
+    <rect x="270" y="34" width="120" height="34" rx="5" fill="#13161f" stroke="#56c2ff" stroke-width="1.5"/>
+    <text x="300" y="56" fill="#ffb454">30</text><text x="360" y="56" fill="#ffb454">60</text>
+    <line x1="330" y1="34" x2="330" y2="68" stroke="#2f3645"/>
+    <rect x="40" y="138" width="140" height="34" rx="5" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+    <text x="75" y="160" fill="#e7eaf2">10</text><text x="115" y="160" fill="#e7eaf2">20</text>
+    <rect x="262" y="138" width="160" height="34" rx="5" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+    <text x="292" y="160" fill="#e7eaf2">30</text><text x="342" y="160" fill="#e7eaf2">40</text><text x="392" y="160" fill="#e7eaf2">50</text>
+    <rect x="500" y="138" width="140" height="34" rx="5" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+    <text x="535" y="160" fill="#e7eaf2">60</text><text x="575" y="160" fill="#e7eaf2">70</text>
+  </g>
+  <g stroke="#56c2ff" stroke-width="1.4" marker-end="url(#bt)" fill="none">
+    <path d="M300 68 Q200 100 110 136"/>
+    <path d="M330 68 L340 136"/>
+    <path d="M360 68 Q470 100 568 136"/>
+  </g>
+  <g stroke="#ffb454" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#btl)" fill="none">
+    <path d="M180 155 L260 155"/>
+    <path d="M422 155 L498 155"/>
+  </g>
+  <text x="330" y="206" fill="#9aa3b5" font-size="11" text-anchor="middle">非葉節點只存 key（高 fanout，樹高 3~4 層）；葉子節點鏈結支援 range scan</text>
+  <defs>
+    <marker id="bt" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#56c2ff"/></marker>
+    <marker id="btl" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#ffb454"/></marker>
+  </defs>
+</svg>
+""".strip(),
+        "resume": "K 线表 rebuild index 优化 time range 查询。",
     },
     {
         "q": "聚簇索引与二级索引？回表与覆盖索引？",
@@ -187,6 +245,30 @@ MYSQL_TOPICS = [
         "dive": ["undo log 存旧版本", "delete mark 未物理删", "purge 线程清理无 read view 需要的 undo"],
         "followups": [("RR 避免幻读？", "当前读 gap lock；快照读靠 MVCC"), ("长事务危害？", "undo 堆积、purge 阻塞")],
         "pitfalls": ["以为 MVCC 完全无锁", "RC+binlog statement 不一致历史问题"],
+        "svg": """
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MVCC 版本鏈：DB_ROLL_PTR 沿 undo log 回溯，Read View 決定可見性">
+  <rect x="20" y="34" width="620" height="40" rx="8" fill="#0d1017" stroke="#c79cff" stroke-width="1.3"/>
+  <text x="330" y="59" fill="#c79cff" font-size="12" text-anchor="middle">Read View：活躍 m_ids = {50}，min_trx_id = 50（trx 50 未提交，對讀取者不可見）</text>
+  <rect x="40" y="104" width="150" height="76" rx="8" fill="#13161f" stroke="#ff6b6b" stroke-width="1.5"/>
+  <text x="115" y="128" fill="#ff6b6b" font-size="12" text-anchor="middle">最新版本</text>
+  <text x="115" y="148" fill="#e7eaf2" font-size="11" text-anchor="middle">DB_TRX_ID = 50</text>
+  <text x="115" y="166" fill="#9aa3b5" font-size="10" text-anchor="middle">活躍/未提交</text>
+  <rect x="255" y="104" width="150" height="76" rx="8" fill="#13161f" stroke="#54dd9b" stroke-width="1.5"/>
+  <text x="330" y="128" fill="#54dd9b" font-size="12" text-anchor="middle">undo 版本</text>
+  <text x="330" y="148" fill="#e7eaf2" font-size="11" text-anchor="middle">DB_TRX_ID = 30</text>
+  <text x="330" y="166" fill="#9aa3b5" font-size="10" text-anchor="middle">已提交 → 命中</text>
+  <rect x="470" y="104" width="150" height="76" rx="8" fill="#13161f" stroke="#2f3645" stroke-width="1.5"/>
+  <text x="545" y="128" fill="#9aa3b5" font-size="12" text-anchor="middle">undo 版本</text>
+  <text x="545" y="148" fill="#e7eaf2" font-size="11" text-anchor="middle">DB_TRX_ID = 20</text>
+  <text x="545" y="166" fill="#9aa3b5" font-size="10" text-anchor="middle">更舊</text>
+  <path d="M190 142 L253 142" stroke="#ffb454" stroke-width="1.6" marker-end="url(#mv)"/>
+  <text x="221" y="134" fill="#ffb454" font-size="9" text-anchor="middle">roll_ptr</text>
+  <path d="M405 142 L468 142" stroke="#ffb454" stroke-width="1.6" marker-end="url(#mv)"/>
+  <text x="436" y="134" fill="#ffb454" font-size="9" text-anchor="middle">roll_ptr</text>
+  <text x="330" y="214" fill="#9aa3b5" font-size="11" text-anchor="middle">讀取者沿 roll_ptr 回溯 undo log：跳過活躍的 trx 50 → 命中已提交的 trx 30</text>
+  <defs><marker id="mv" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#ffb454"/></marker></defs>
+</svg>
+""".strip(),
     },
     {
         "q": "四种隔离级别与现象？",
@@ -229,7 +311,7 @@ MYSQL_TOPICS = [
         "dive": ["EXPLAIN ANALYZE 实际行数", "pt-query-digest 聚合", "optimizer trace"],
         "followups": [("type ALL 一定坏？", "小表 OK"), ("filesort 优化？", "索引排序 Avoid filesort")],
         "pitfalls": ["只看 rows 不看 filtered", "上线无 explain"],
-        "resume": "Roy 用 EXPLAIN + index rebuild 优化 K 线聚合 SP。",
+        "resume": "實務上用 EXPLAIN + index rebuild 优化 K 线聚合 SP。",
     },
     {
         "q": "联合索引与最左前缀？",
@@ -253,12 +335,12 @@ MYSQL_TOPICS = [
         "pitfalls": ["SQL 改写后未 explain", "MRR/ICP 误判"],
     },
     {
-        "q": "Stored Procedure 优缺点？Roy K 线场景？",
-        "core": "SP 在 DB 内聚合减少 network round-trip、可封装复杂 OHLC 逻辑。缺点：版本管理难、调试弱、锁 DB 资源、可移植性差。Roy 用 SP 做 K 线聚合+清洗异常 duplicate。",
+        "q": "Stored Procedure 优缺点？K 线（OHLC）场景如何用？",
+        "core": "SP 在 DB 内聚合减少 network round-trip、可封装复杂 OHLC 逻辑。缺点：版本管理难、调试弱、锁 DB 资源、可移植性差。實務上用 SP 做 K 线聚合+清洗异常 duplicate。",
         "dive": ["与 app 层职责划分", "prepared statement 类似边界", "权限与安全 SQL injection in SP"],
         "followups": [("何时不用 SP？", "复杂业务规则、频繁变更"), ("性能？", "减少 RTT 但 CPU 在 DB")],
         "pitfalls": ["SP 无索引表扫描", "逻辑散落 app+SP 难维护"],
-        "resume": "Roy：MySQL SP 聚合 K 线 + index rebuild，配合 Redis ZSET，延迟 3–5s→300–500ms。",
+        "resume": "實務經驗：MySQL SP 聚合 K 线 + index rebuild，配合 Redis ZSET，延迟 3–5s→300–500ms。",
     },
     {
         "q": "主从复制原理与延迟？",
@@ -273,6 +355,26 @@ MYSQL_TOPICS = [
         "dive": ["snowflake ID", "全局二级索引表", "扩容双倍迁移"],
         "followups": [("shard key 选 user_id？", "均衡+业务局部性"), ("事务？", "XA 或最终一致")],
         "pitfalls": ["热点 shard", "跨 shard 排序分页"],
+        "svg": """
+<svg viewBox="0 0 660 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="一致性哈希環：key 順時針落到下一個節點，增刪節點僅影響相鄰區段">
+  <circle cx="330" cy="150" r="104" fill="none" stroke="#2f3645" stroke-width="1.5"/>
+  <circle cx="330" cy="46" r="12" fill="#54dd9b"/><text x="330" y="32" fill="#54dd9b" font-size="12" text-anchor="middle">Node A</text>
+  <circle cx="420" cy="202" r="12" fill="#54dd9b"/><text x="452" y="222" fill="#54dd9b" font-size="12" text-anchor="middle">Node B</text>
+  <circle cx="240" cy="202" r="12" fill="#54dd9b"/><text x="208" y="222" fill="#54dd9b" font-size="12" text-anchor="middle">Node C</text>
+  <circle cx="397" cy="70" r="7" fill="#ffb454"/><text x="412" y="62" fill="#ffb454" font-size="11">k1</text>
+  <circle cx="312" cy="252" r="7" fill="#ffb454"/><text x="312" y="274" fill="#ffb454" font-size="11" text-anchor="middle">k2</text>
+  <circle cx="232" cy="114" r="7" fill="#ffb454"/><text x="214" y="108" fill="#ffb454" font-size="11">k3</text>
+  <g stroke="#c79cff" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#hr)" fill="none">
+    <path d="M403 78 Q430 140 418 190"/>
+    <path d="M305 256 Q270 240 250 212"/>
+    <path d="M238 108 Q290 60 322 52"/>
+  </g>
+  <text x="330" y="160" fill="#9aa3b5" font-size="11" text-anchor="middle">key 順時針</text>
+  <text x="330" y="178" fill="#9aa3b5" font-size="11" text-anchor="middle">落到下一個節點</text>
+  <text x="330" y="285" fill="#9aa3b5" font-size="10" text-anchor="middle">增刪節點只需搬遷相鄰區段的 key，避免全量 rehash（虛擬節點可均衡負載）</text>
+  <defs><marker id="hr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#c79cff"/></marker></defs>
+</svg>
+""".strip(),
     },
     {
         "q": "MySQL 连接池如何配置？",
@@ -301,7 +403,7 @@ MYSQL_TOPICS = [
         "dive": ["与 Redis ZSET 分工：DB 权威、cache 热窗", "SP 聚合 tick→candle", "异常 duplicate 清洗"],
         "followups": [("分表？", "按 symbol hash 或 time 分区"), ("tick 级？", "时序库或分表")],
         "pitfalls": ["无 unique 重复 candle", "range 查询无索引"],
-        "resume": "Roy 實際經驗：SP 清洗 duplicate + index rebuild + Redis ZSET 热数据。",
+        "resume": "實際經驗：SP 清洗 duplicate + index rebuild + Redis ZSET 热数据。",
     },
     {
         "q": "線上對大表加索引/改欄位如何不鎖表？（gh-ost / pt-osc）",
@@ -316,6 +418,6 @@ MYSQL_TOPICS = [
             ("8.0 INSTANT DDL 限制？", "只支援部分操作（如尾部加欄位），不能加在中間或改型別"),
         ],
         "pitfalls": ["直接對大表 ALTER 造成長時間鎖與主從延遲", "忘了監控 replica lag，切換時下游讀到不一致", "磁碟空間不足導致影子表失敗"],
-        "resume": "Roy K 線表 rebuild index 時需考量線上變更策略，避免鎖住交易/行情讀路徑。",
+        "resume": "K 線表 rebuild index 時需考量線上變更策略，避免鎖住交易/行情讀路徑。",
     },
 ]

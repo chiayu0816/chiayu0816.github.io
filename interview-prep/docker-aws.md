@@ -1,6 +1,6 @@
 # Docker / AWS 面試 Q&A
 
-> 來源：tech-vault、Roy HRM Docker Compose / AWS 實務
+> 來源：tech-vault、Docker Compose / AWS 實務
 > 題數：15 道 | 深度：Senior Backend 面試級
 > 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
 
@@ -48,10 +48,10 @@
 - secrets in ENV
 
 ---
-### Q: Docker Compose 用於本地/HRM 專案？
+### Q: Docker Compose 用於本地/全棧專案？
 
 **核心回答：**
-Roy HRM：Go backend + Vue + MySQL + Compose 一鍵起。service depends_on、network、volume、env file。
+一個全棧專案：Go backend + Vue + MySQL + Compose 一鍵起。service depends_on、network、volume、env file。
 
 **深入原理：**
 - healthcheck wait
@@ -69,7 +69,7 @@ Roy HRM：Go backend + Vue + MySQL + Compose 一鍵起。service depends_on、ne
 - 明文 password yml
 
 **結合履歷：**
-Roy HRM：Go/Gin/GORM + Vue3 + MySQL + Docker Compose 獨立交付。
+全棧專案：Go/Gin/GORM + Vue3 + MySQL + Docker Compose 獨立交付。
 
 ---
 ### Q: 容器網路：bridge/host/overlay？
@@ -138,7 +138,7 @@ Pod最小單元；Deployment 滾動更新；Service 穩定 IP；Ingress HTTP 路
 ### Q: AWS EC2 vs ECS vs EKS？
 
 **核心回答：**
-EC2 虛擬機器自控；ECS AWS 容器編排；EKS 託管 K8s。Roy 簡歷 AWS 經驗：選型看團隊與 scale。
+EC2 虛擬機器自控；ECS AWS 容器編排；EKS 託管 K8s。選型看團隊規模與運維能力。
 
 **深入原理：**
 - Fargate 無 server
@@ -243,7 +243,7 @@ VPC CIDR；public/private subnet；IGW NAT Gateway；Security Group 有狀態防
 ### Q: CI/CD：Jenkins pipeline 要點？
 
 **核心回答：**
-Roy Apezgo：Jenkins+SVN 自動化部署。Pipeline as Code；stage build/test/deploy；artifact；rollback。
+實務案例：Jenkins+SVN 自動化部署。Pipeline as Code；stage build/test/deploy；artifact；rollback。
 
 **深入原理：**
 - blue/green canary
@@ -261,7 +261,7 @@ Roy Apezgo：Jenkins+SVN 自動化部署。Pipeline as Code；stage build/test/d
 - prod creds in Jenkinsfile
 
 **結合履歷：**
-Roy Apezgo：Jenkins+SVN CI/CD 減少手動釋出風險。
+實務：Jenkins+SVN CI/CD 減少手動釋出風險。
 
 ---
 ### Q: Infrastructure as Code：Terraform 概念？

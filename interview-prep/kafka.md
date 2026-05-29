@@ -38,6 +38,37 @@ Producer 寫入 Topic 的 Partition；Broker 存 log segment；Consumer Group �
 - Static membership 減 rebalance
 - Cooperative sticky assignor
 
+```svg
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kafka partition 與 consumer group 對應關係">
+  <text x="330" y="24" fill="#56c2ff" font-size="13" font-weight="700" text-anchor="middle">Topic（3 partitions） → Consumer Group（2 consumers）</text>
+  <g>
+    <rect x="40" y="46" width="350" height="30" rx="5" fill="#0d1017" stroke="#2f3645"/>
+    <text x="62" y="66" fill="#ffb454" font-size="12">P0</text>
+    <rect x="92" y="50" width="44" height="22" fill="#ffb454" opacity="0.85"/><rect x="140" y="50" width="44" height="22" fill="#ffb454" opacity="0.6"/><rect x="188" y="50" width="44" height="22" fill="#ffb454" opacity="0.4"/>
+    <rect x="40" y="92" width="350" height="30" rx="5" fill="#0d1017" stroke="#2f3645"/>
+    <text x="62" y="112" fill="#ffb454" font-size="12">P1</text>
+    <rect x="92" y="96" width="44" height="22" fill="#ffb454" opacity="0.85"/><rect x="140" y="96" width="44" height="22" fill="#ffb454" opacity="0.6"/>
+    <rect x="40" y="138" width="350" height="30" rx="5" fill="#0d1017" stroke="#2f3645"/>
+    <text x="62" y="158" fill="#ffb454" font-size="12">P2</text>
+    <rect x="92" y="142" width="44" height="22" fill="#ffb454" opacity="0.85"/><rect x="140" y="142" width="44" height="22" fill="#ffb454" opacity="0.6"/><rect x="188" y="142" width="44" height="22" fill="#ffb454" opacity="0.4"/>
+  </g>
+  <text x="334" y="64" fill="#6b7385" font-size="10">offset →</text>
+  <rect x="452" y="40" width="190" height="138" rx="8" fill="none" stroke="#c79cff" stroke-width="1.3"/>
+  <text x="547" y="58" fill="#c79cff" font-size="11" text-anchor="middle">Consumer Group G1</text>
+  <rect x="466" y="70" width="162" height="40" rx="6" fill="#13161f" stroke="#56c2ff" stroke-width="1.4"/>
+  <text x="547" y="94" fill="#56c2ff" font-size="12" text-anchor="middle">Consumer 1（P0,P1）</text>
+  <rect x="466" y="124" width="162" height="40" rx="6" fill="#13161f" stroke="#56c2ff" stroke-width="1.4"/>
+  <text x="547" y="148" fill="#56c2ff" font-size="12" text-anchor="middle">Consumer 2（P2）</text>
+  <g stroke="#54dd9b" stroke-width="1.5" marker-end="url(#kf)" fill="none">
+    <path d="M390 61 L464 84"/>
+    <path d="M390 107 L464 94"/>
+    <path d="M390 153 L464 144"/>
+  </g>
+  <text x="330" y="214" fill="#9aa3b5" font-size="11" text-anchor="middle">分割槽內嚴格有序；同 group 內一個 partition 只給一個 consumer；consumer 數 &gt; partition 數則多的閒置</text>
+  <defs><marker id="kf" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#54dd9b"/></marker></defs>
+</svg>
+```
+
 **考官可能追問：**
 - Q: Consumer 多於 partition？
   - A: 閒置
@@ -49,7 +80,7 @@ Producer 寫入 Topic 的 Partition；Broker 存 log segment；Consumer Group �
 - 處理慢導致 rebalance 迴圈
 
 **結合履歷：**
-Roy 在 Luxons/INNO 用 Kafka 分發體育資料到下游。
+實務上用 Kafka 分發體育資料到多個下游。
 
 ---
 ### Q: Offset 提交策略？
@@ -97,22 +128,24 @@ Auto commit 預設 5s 可能丟或重複；手動 commit 處理完再 commit 至
 ### Q: Exactly-once 語義如何實現？
 
 **核心回答：**
-Idempotent Producer（PID+sequence 防重）+ Transactions（原子寫多 partition + consumer offset）。read-process-write 鏈需 Kafka Streams 或自己協調。
+Kafka 的 exactly-once 不是魔法，而是**冪等 Producer + 事務**兩層疊加：冪等 Producer 讓 broker 以 (PID, partition, sequence) 去重，消除『重試造成單分割槽內重複寫』；事務再把『寫多個 partition + 提交 consumer offset』包成一個原子單位，配合 consumer 端 `isolation.level=read_committed` 只讀已提交訊息。完整的 read-process-write（消費→處理→再產出）EOS 需用 Kafka Streams 或自行以同一個 `transactional.id` 協調。
 
 **深入原理：**
-- transactional.id
-- commitTransaction
-- EOS in streams
+- 冪等：Producer 啟動取得 PID + epoch，broker 為每個 (PID, partition) 維護遞增 sequence，重複或亂序的 sequence 直接丟棄
+- 事務：`transactional.id` 跨 session 識別同一邏輯 Producer；beginTransaction/commitTransaction 在 log 寫入 transaction marker，未提交訊息對 read_committed consumer 不可見
+- 用 `sendOffsetsToTransaction` 把消費位移與輸出寫入放進同一事務，確保『位移與處理結果同生共死』
+- epoch 做 fencing：同 transactional.id 但 epoch 較舊的殭屍 Producer 會被 broker 拒絕，避免重複寫
 
 **考官可能追問：**
 - Q: 與 DB 一致？
-  - A: Outbox pattern
+  - A: Kafka 事務無法跨 DB；用 Outbox pattern 讓業務與訊息同事務落庫再投遞
 - Q: 效能代價？
-  - A: 事務協調開銷
+  - A: 事務協調與 marker 寫入有開銷，吞吐下降，需權衡
 
 **常見陷阱 / 易錯點：**
-- 以為預設 exactly-once
-- transaction timeout 過短
+- 以為預設 exactly-once（預設是 at-least-once）
+- 只開 idempotence 就以為有跨 partition 原子性（需 transaction）
+- transaction timeout 過短導致中斷
 
 ---
 ### Q: Rebalance 觸發條件與最佳化？
@@ -139,7 +172,7 @@ Consumer 加入/離開、partition 數變、session 超時（heartbeat 失敗）
 ### Q: Kafka vs RocketMQ 對比？
 
 **核心回答：**
-Kafka：高吞吐 log 流、生態強、延遲 ms 級。RocketMQ：金融級、Tag 過濾、延遲訊息、事務訊息原生、順序+定時成熟。Roy 交易所用 RocketMQ 交易流。
+Kafka：高吞吐 log 流、生態強、延遲 ms 級。RocketMQ：金融級、Tag 過濾、延遲訊息、事務訊息原生、順序+定時成熟。交易所場景常用 RocketMQ 承載交易流。
 
 **深入原理：**
 - Kafka pull long poll
@@ -157,7 +190,7 @@ Kafka：高吞吐 log 流、生態強、延遲 ms 級。RocketMQ：金融級、T
 - 忽視 Topic 規劃
 
 **結合履歷：**
-Roy：交易所 RocketMQ 交易/market flow；體育資料 Kafka 高吞吐分發。
+實務經驗：交易所用 RocketMQ 承載交易/market flow；體育資料用 Kafka 高吞吐分發。
 
 ---
 ### Q: Producer acks 與可靠性？
@@ -184,22 +217,24 @@ acks=0  fire-and-forget；acks=1 leader 寫成功；acks=all/-1 等 ISR 全部 a
 ### Q: Kafka 儲存機制與 retention？
 
 **核心回答：**
-Partition log 追加寫 segment 檔案，順序寫磁碟接近記憶體速度。Retention 按時間或大小刪除舊 segment。Compact topic 保留最新 key。
+Kafka 把每個 partition 當成**只能追加（append-only）的 log**，訊息順序寫入 segment 檔；順序寫避免隨機 IO 的尋道成本，吞吐接近記憶體。消費時用**零複製（sendfile）**直接把 page cache 的資料送進 socket，省去 user space 來回複製與 GC 壓力。Retention 以時間或大小**刪除整個舊 segment**（非逐筆刪）；compact topic 則只保留每個 key 的最新值，適合 changelog/KV 快照。
 
 **深入原理：**
-- .log .index .timeindex
-- zero-copy sendfile
-- 頁快取利用
+- 每個 partition 切成多個 segment：`.log`（訊息）、`.index`（offset→實體位置）、`.timeindex`（時間→offset），查詢用二分搜尋
+- 順序寫 + OS page cache：寫入先進 page cache 由 OS 批次刷盤，讀取多半命中 cache，broker 幾乎不碰磁碟隨機 IO
+- 零複製 sendfile：資料不經 JVM heap，由 DMA 直送網絡卡，大幅降低 CPU 與 GC 壓力
+- retention 以 segment 為刪除單位；compact 由 log cleaner 背景合併，保留每 key 最新值（tombstone 代表刪除）
 
 **考官可能追問：**
 - Q: 無限保留？
-  - A: 磁碟成本+replay 慢
+  - A: 磁碟成本高+replay 慢；常配分層儲存或轉 compact
 - Q: Compact 用途？
-  - A: changelog KV
+  - A: 保留每 key 最新值，如 changelog KV、狀態快照
 
 **常見陷阱 / 易錯點：**
 - 磁碟滿 broker 掛
-- 單 broker 無 replication
+- 單 broker 無 replication 丟資料
+- 誤以為零複製對壓縮訊息仍生效（需解壓則失效）
 
 ---
 ### Q: Consumer lag 如何監控與處理？
@@ -328,6 +363,6 @@ Betradar 接入後作為 fan-out 匯流排：odds/live events 寫 topic，多下
 - consumer 同步 HTTP 阻塞
 
 **結合履歷：**
-Roy：Betradar onboarding、Kafka 下游分發、LMAX 降延遲 >1000ms。
+實務經驗：Betradar onboarding、Kafka 下游分發、LMAX Disruptor 降延遲 >1000ms。
 
 ---

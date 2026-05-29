@@ -1,6 +1,6 @@
 # MongoDB 面試 Q&A
 
-> 來源：tech-vault、Roy INNO/Gongying 實務
+> 來源：tech-vault、體育/客服實務
 > 題數：12 道 | 深度：Senior Backend 面試級
 > 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
 
@@ -114,22 +114,24 @@ Shard key 選高基數+均衡；hashed 防熱點；range 易熱點但 range 查�
 ### Q: Transaction 與 ACID？
 
 **核心回答：**
-4.0 副本集、4.2 分片多文件事務。兩階段提交，有效能開銷。多數場景用單文件原子或冪等設計替代。
+MongoDB 4.0 起副本集、4.2 起分片支援多文件事務，語義接近關聯式 ACID，但**代價高**：跨分片要兩階段提交、持鎖時間長、且與 WiredTiger 快照隔離互動。設計上應優先**利用單文件的原子性**（一份文件的更新本身就是原子的）與冪等設計（embed 相關資料、用 upsert/版本欄位），把多文件事務當最後手段。
 
 **深入原理：**
-- session startTransaction
-- maxTransactionLockRequestTimeoutMillis
-- 跨 shard 慢
+- 單文件更新天然原子：把『需一起改的資料』embed 進同一文件，多數情況免多文件事務
+- 多文件事務：session.startTransaction，跨分片走 2PC，有 maxTransactionLockRequestTimeoutMillis 與時間上限
+- 與快照隔離互動：事務讀在一致快照上，寫衝突會 abort，需應用層重試
+- 替代方案：embedding、冪等 upsert、應用層 saga/補償
 
 **考官可能追問：**
 - Q: 何時事務？
-  - A: 多 doc 強一致必要
+  - A: 確實需多 doc 強一致才用
 - Q: 替代？
-  - A: embedding+idempotent
+  - A: embedding+idempotent upsert+saga
 
 **常見陷阱 / 易錯點：**
-- 長事務 lock
-- 高併發事務
+- 長事務持鎖拖垮併發
+- 高併發事務頻繁 abort 重試
+- 以為像 RDB 一樣廉價
 
 ---
 ### Q: Aggregation Pipeline？
@@ -237,10 +239,10 @@ Embed：1-N 小、常一起讀、原子更新。Reference：N 大、獨立增長
 - ref 無 index
 
 ---
-### Q: Roy 專案 MongoDB 使用場景？
+### Q: MongoDB 實務使用場景？
 
 **核心回答：**
-INNO/Gongying：體育/客服非結構化日誌、contact logs、靈活 schema 報表。非核心交易（交易在 MySQL/Redis）。
+體育/客服場景：非結構化日誌、contact logs、靈活 schema 報表。非核心交易（交易在 MySQL/Redis）。
 
 **深入原理：**
 - 與 MySQL 分工
@@ -257,6 +259,6 @@ INNO/Gongying：體育/客服非結構化日誌、contact logs、靈活 schema �
 - Mongo 當主交易庫
 
 **結合履歷：**
-Roy INNO：Betgenius 資料 Mongo+MySQL；Gongying 客服 MongoDB KPI。
+體育資料實務：Betgenius 資料 Mongo+MySQL；客服系統用 MongoDB 做 KPI。
 
 ---

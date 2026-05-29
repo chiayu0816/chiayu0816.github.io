@@ -112,7 +112,8 @@
   function renderAnswer(t){
     var h = "";
     if(t.core) h += sec("core","核心回答",t.core);
-    if(t.dive&&t.dive.length) h += sec("dive","深入原理",list(t.dive));
+    if((t.dive&&t.dive.length) || t.diagram)
+      h += sec("dive","深入原理",(t.dive&&t.dive.length?list(t.dive):"")+(t.diagram||""));
     if(t.followups&&t.followups.length){
       var fu = t.followups.map(function(f){
         return '<div class="fu"><div class="fq">'+f.q+'</div><div class="fa">'+f.a+'</div></div>';

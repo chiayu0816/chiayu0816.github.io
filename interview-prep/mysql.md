@@ -37,6 +37,36 @@ B+ 樹多路平衡，樹高低（3-4 層百萬行）、磁碟 IO 少；葉子連
 - 聚簇索引葉子=行資料
 - 二級索引葉子=PK 值需回表
 
+```svg
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="B+ 樹：非葉只存 key，葉子鏈結支援 range scan">
+  <g text-anchor="middle" font-size="12">
+    <rect x="270" y="34" width="120" height="34" rx="5" fill="#13161f" stroke="#56c2ff" stroke-width="1.5"/>
+    <text x="300" y="56" fill="#ffb454">30</text><text x="360" y="56" fill="#ffb454">60</text>
+    <line x1="330" y1="34" x2="330" y2="68" stroke="#2f3645"/>
+    <rect x="40" y="138" width="140" height="34" rx="5" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+    <text x="75" y="160" fill="#e7eaf2">10</text><text x="115" y="160" fill="#e7eaf2">20</text>
+    <rect x="262" y="138" width="160" height="34" rx="5" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+    <text x="292" y="160" fill="#e7eaf2">30</text><text x="342" y="160" fill="#e7eaf2">40</text><text x="392" y="160" fill="#e7eaf2">50</text>
+    <rect x="500" y="138" width="140" height="34" rx="5" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+    <text x="535" y="160" fill="#e7eaf2">60</text><text x="575" y="160" fill="#e7eaf2">70</text>
+  </g>
+  <g stroke="#56c2ff" stroke-width="1.4" marker-end="url(#bt)" fill="none">
+    <path d="M300 68 Q200 100 110 136"/>
+    <path d="M330 68 L340 136"/>
+    <path d="M360 68 Q470 100 568 136"/>
+  </g>
+  <g stroke="#ffb454" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#btl)" fill="none">
+    <path d="M180 155 L260 155"/>
+    <path d="M422 155 L498 155"/>
+  </g>
+  <text x="330" y="206" fill="#9aa3b5" font-size="11" text-anchor="middle">非葉節點只存 key（高 fanout，樹高 3~4 層）；葉子節點鏈結支援 range scan</text>
+  <defs>
+    <marker id="bt" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#56c2ff"/></marker>
+    <marker id="btl" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#ffb454"/></marker>
+  </defs>
+</svg>
+```
+
 **考官可能追問：**
 - Q: 為何不用紅黑樹？
   - A: 磁碟 IO 次數多
@@ -48,7 +78,7 @@ B+ 樹多路平衡，樹高低（3-4 層百萬行）、磁碟 IO 少；葉子連
 - 函式索引前導列失效
 
 **結合履歷：**
-Roy K 線表 rebuild index 最佳化 time range 查詢。
+K 線表 rebuild index 最佳化 time range 查詢。
 
 ---
 ### Q: 聚簇索引與二級索引？回表與覆蓋索引？
@@ -81,6 +111,31 @@ InnoDB 表資料按 PK 聚簇儲存；二級索引存 (index_col, PK)。查詢�
 - undo log 存舊版本
 - delete mark 未物理刪
 - purge 執行緒清理無 read view 需要的 undo
+
+```svg
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MVCC 版本鏈：DB_ROLL_PTR 沿 undo log 回溯，Read View 決定可見性">
+  <rect x="20" y="34" width="620" height="40" rx="8" fill="#0d1017" stroke="#c79cff" stroke-width="1.3"/>
+  <text x="330" y="59" fill="#c79cff" font-size="12" text-anchor="middle">Read View：活躍 m_ids = {50}，min_trx_id = 50（trx 50 未提交，對讀取者不可見）</text>
+  <rect x="40" y="104" width="150" height="76" rx="8" fill="#13161f" stroke="#ff6b6b" stroke-width="1.5"/>
+  <text x="115" y="128" fill="#ff6b6b" font-size="12" text-anchor="middle">最新版本</text>
+  <text x="115" y="148" fill="#e7eaf2" font-size="11" text-anchor="middle">DB_TRX_ID = 50</text>
+  <text x="115" y="166" fill="#9aa3b5" font-size="10" text-anchor="middle">活躍/未提交</text>
+  <rect x="255" y="104" width="150" height="76" rx="8" fill="#13161f" stroke="#54dd9b" stroke-width="1.5"/>
+  <text x="330" y="128" fill="#54dd9b" font-size="12" text-anchor="middle">undo 版本</text>
+  <text x="330" y="148" fill="#e7eaf2" font-size="11" text-anchor="middle">DB_TRX_ID = 30</text>
+  <text x="330" y="166" fill="#9aa3b5" font-size="10" text-anchor="middle">已提交 → 命中</text>
+  <rect x="470" y="104" width="150" height="76" rx="8" fill="#13161f" stroke="#2f3645" stroke-width="1.5"/>
+  <text x="545" y="128" fill="#9aa3b5" font-size="12" text-anchor="middle">undo 版本</text>
+  <text x="545" y="148" fill="#e7eaf2" font-size="11" text-anchor="middle">DB_TRX_ID = 20</text>
+  <text x="545" y="166" fill="#9aa3b5" font-size="10" text-anchor="middle">更舊</text>
+  <path d="M190 142 L253 142" stroke="#ffb454" stroke-width="1.6" marker-end="url(#mv)"/>
+  <text x="221" y="134" fill="#ffb454" font-size="9" text-anchor="middle">roll_ptr</text>
+  <path d="M405 142 L468 142" stroke="#ffb454" stroke-width="1.6" marker-end="url(#mv)"/>
+  <text x="436" y="134" fill="#ffb454" font-size="9" text-anchor="middle">roll_ptr</text>
+  <text x="330" y="214" fill="#9aa3b5" font-size="11" text-anchor="middle">讀取者沿 roll_ptr 回溯 undo log：跳過活躍的 trx 50 → 命中已提交的 trx 30</text>
+  <defs><marker id="mv" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#ffb454"/></marker></defs>
+</svg>
+```
 
 **考官可能追問：**
 - Q: RR 避免幻讀？
@@ -218,7 +273,7 @@ commit 時：1) redo prepare 2) 寫 binlog 3) redo commit。崩潰恢復時以 b
 - 上線無 explain
 
 **結合履歷：**
-Roy 用 EXPLAIN + index rebuild 最佳化 K 線聚合 SP。
+實務上用 EXPLAIN + index rebuild 最佳化 K 線聚合 SP。
 
 ---
 ### Q: 聯合索引與最左字首？
@@ -283,10 +338,10 @@ MySQL 5.6+ 二級索引掃描時，在儲存引擎層用索引列先過濾 WHERE
 - MRR/ICP 誤判
 
 ---
-### Q: Stored Procedure 優缺點？Roy K 線場景？
+### Q: Stored Procedure 優缺點？K 線（OHLC）場景如何用？
 
 **核心回答：**
-SP 在 DB 內聚合減少 network round-trip、可封裝複雜 OHLC 邏輯。缺點：版本管理難、除錯弱、鎖 DB 資源、可移植性差。Roy 用 SP 做 K 線聚合+清洗異常 duplicate。
+SP 在 DB 內聚合減少 network round-trip、可封裝複雜 OHLC 邏輯。缺點：版本管理難、除錯弱、鎖 DB 資源、可移植性差。實務上用 SP 做 K 線聚合+清洗異常 duplicate。
 
 **深入原理：**
 - 與 app 層職責劃分
@@ -304,7 +359,7 @@ SP 在 DB 內聚合減少 network round-trip、可封裝複雜 OHLC 邏輯。缺
 - 邏輯散落 app+SP 難維護
 
 **結合履歷：**
-Roy：MySQL SP 聚合 K 線 + index rebuild，配合 Redis ZSET，延遲 3–5s→300–500ms。
+實務經驗：MySQL SP 聚合 K 線 + index rebuild，配合 Redis ZSET，延遲 3–5s→300–500ms。
 
 ---
 ### Q: 主從複製原理與延遲？
@@ -337,6 +392,27 @@ Roy：MySQL SP 聚合 K 線 + index rebuild，配合 Redis ZSET，延遲 3–5s�
 - snowflake ID
 - 全域二級索引表
 - 擴容雙倍遷移
+
+```svg
+<svg viewBox="0 0 660 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="一致性雜湊環：key 順時針落到下一個節點，增刪節點僅影響相鄰區段">
+  <circle cx="330" cy="150" r="104" fill="none" stroke="#2f3645" stroke-width="1.5"/>
+  <circle cx="330" cy="46" r="12" fill="#54dd9b"/><text x="330" y="32" fill="#54dd9b" font-size="12" text-anchor="middle">Node A</text>
+  <circle cx="420" cy="202" r="12" fill="#54dd9b"/><text x="452" y="222" fill="#54dd9b" font-size="12" text-anchor="middle">Node B</text>
+  <circle cx="240" cy="202" r="12" fill="#54dd9b"/><text x="208" y="222" fill="#54dd9b" font-size="12" text-anchor="middle">Node C</text>
+  <circle cx="397" cy="70" r="7" fill="#ffb454"/><text x="412" y="62" fill="#ffb454" font-size="11">k1</text>
+  <circle cx="312" cy="252" r="7" fill="#ffb454"/><text x="312" y="274" fill="#ffb454" font-size="11" text-anchor="middle">k2</text>
+  <circle cx="232" cy="114" r="7" fill="#ffb454"/><text x="214" y="108" fill="#ffb454" font-size="11">k3</text>
+  <g stroke="#c79cff" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#hr)" fill="none">
+    <path d="M403 78 Q430 140 418 190"/>
+    <path d="M305 256 Q270 240 250 212"/>
+    <path d="M238 108 Q290 60 322 52"/>
+  </g>
+  <text x="330" y="160" fill="#9aa3b5" font-size="11" text-anchor="middle">key 順時針</text>
+  <text x="330" y="178" fill="#9aa3b5" font-size="11" text-anchor="middle">落到下一個節點</text>
+  <text x="330" y="285" fill="#9aa3b5" font-size="10" text-anchor="middle">增刪節點只需搬遷相鄰區段的 key，避免全量 rehash（虛擬節點可均衡負載）</text>
+  <defs><marker id="hr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#c79cff"/></marker></defs>
+</svg>
+```
 
 **考官可能追問：**
 - Q: shard key 選 user_id？
@@ -433,7 +509,7 @@ HikariCP/Go sql.DB：max_open、max_idle、conn_max_lifetime。過大連線耗�
 - range 查詢無索引
 
 **結合履歷：**
-Roy 實際經驗：SP 清洗 duplicate + index rebuild + Redis ZSET 熱資料。
+實際經驗：SP 清洗 duplicate + index rebuild + Redis ZSET 熱資料。
 
 ---
 ### Q: 線上對大表加索引/改欄位如何不鎖表？（gh-ost / pt-osc）
@@ -458,6 +534,6 @@ MySQL 5.6+ 支援 Online DDL（ALGORITHM=INPLACE, LOCK=NONE），多數加索引
 - 磁碟空間不足導致影子表失敗
 
 **結合履歷：**
-Roy K 線表 rebuild index 時需考量線上變更策略，避免鎖住交易/行情讀路徑。
+K 線表 rebuild index 時需考量線上變更策略，避免鎖住交易/行情讀路徑。
 
 ---

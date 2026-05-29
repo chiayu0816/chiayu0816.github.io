@@ -52,6 +52,7 @@ SECTION_MARKERS = [
 ]
 
 FENCE_RE = re.compile(r"```(\w*)\n(.*?)```", re.S)
+SVG_FENCE_RE = re.compile(r"```svg\n(.*?)```", re.S)
 
 
 def inline_md(escaped: str) -> str:
@@ -84,6 +85,11 @@ def render_rich(text: str) -> str:
                 out.append(f"<p>{inline_md(esc)}</p>")
         else:
             lang = p[1] or "text"
+            if lang == "svg":
+                # Inline SVG diagrams are emitted as raw html (not escaped),
+                # so the hand-authored markup renders as an actual diagram.
+                out.append(f'<div class="diagram">{p[2].strip()}</div>')
+                continue
             code = html.escape(p[2].rstrip("\n"))
             out.append(
                 f'<pre class="code"><span class="code-lang">{lang}</span>'
@@ -99,6 +105,19 @@ def bullets(text: str) -> list[str]:
         if s.startswith("- "):
             items.append(inline_md(html.escape(s[2:].strip())))
     return items
+
+
+def bullets_and_diagram(text: str) -> tuple[list[str], str]:
+    """Split a dive section into bullet items + raw inline-SVG diagram html."""
+    svgs: list[str] = []
+
+    def grab(m: re.Match) -> str:
+        svgs.append(m.group(1).strip())
+        return ""
+
+    rest = SVG_FENCE_RE.sub(grab, text)
+    diagram = "".join(f'<div class="diagram">{s}</div>' for s in svgs)
+    return bullets(rest), diagram
 
 
 def parse_followups(text: str) -> list[dict]:
@@ -150,10 +169,12 @@ def parse_topic(block: str) -> dict | None:
         raw[key] = body[start:end].strip()
 
     search_src = q + " " + " ".join(raw.values())
+    dive_items, dive_diagram = bullets_and_diagram(raw.get("dive", ""))
     return {
         "q": q,
         "core": render_rich(raw.get("core", "")),
-        "dive": bullets(raw.get("dive", "")),
+        "dive": dive_items,
+        "diagram": dive_diagram,
         "followups": parse_followups(raw.get("followups", "")),
         "pitfalls": bullets(raw.get("pitfalls", "")),
         "resume": render_rich(raw["resume"]) if raw.get("resume") else "",
@@ -324,6 +345,11 @@ pre.code{position:relative;background:#0b0e15;border:1px solid var(--border);bor
   padding:14px 14px 13px;overflow:auto;margin:10px 0}
 pre.code code{font-family:var(--mono);font-size:12.8px;line-height:1.65;color:#cfe3ff;background:none;border:none;padding:0;white-space:pre}
 .code-lang{position:absolute;top:7px;right:10px;font-family:var(--mono);font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em}
+.diagram{
+  margin:12px 0 4px;padding:16px 14px;background:#0b0e15;border:1px solid var(--border);
+  border-radius:var(--radius-sm);overflow-x:auto;-webkit-overflow-scrolling:touch;text-align:center;
+}
+.diagram svg{display:block;max-width:100%;height:auto;margin:0 auto;font-family:var(--mono)}
 .fu{margin:8px 0;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm)}
 .fu .fq{font-size:13.5px;color:var(--text);font-weight:600}
 .fu .fq::before{content:"Q ";font-family:var(--mono);color:var(--c-ask);font-weight:700}
@@ -434,7 +460,8 @@ APP_JS = r"""(function(){
   function renderAnswer(t){
     var h = "";
     if(t.core) h += sec("core","核心回答",t.core);
-    if(t.dive&&t.dive.length) h += sec("dive","深入原理",list(t.dive));
+    if((t.dive&&t.dive.length) || t.diagram)
+      h += sec("dive","深入原理",(t.dive&&t.dive.length?list(t.dive):"")+(t.diagram||""));
     if(t.followups&&t.followups.length){
       var fu = t.followups.map(function(f){
         return '<div class="fu"><div class="fq">'+f.q+'</div><div class="fa">'+f.a+'</div></div>';
@@ -542,7 +569,7 @@ def build_index_html(data: dict) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Roy Lee · 後端面試準備</title>
+<title>後端面試準備 · Senior Backend</title>
 <meta name="description" content="Senior Go/Java 後端面試準備 · {total} 題技術深度問答">
 <meta name="theme-color" content="#0a0c11">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -559,7 +586,7 @@ def build_index_html(data: dict) -> str:
       <span aria-hidden="true"></span>
     </button>
     <div class="brand">
-      <span class="logo">roy<span class="pin">_</span>prep</span>
+      <span class="logo">interview<span class="pin">_</span>prep</span>
       <span class="sub">SENIOR BACKEND · GO/JAVA</span>
     </div>
     <div class="search">
@@ -590,7 +617,7 @@ def build_index_html(data: dict) -> str:
     <section class="hero">
       <h1>面試準備</h1>
       <p>以「核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 結合履歷」五段式整理的 Senior Go / Java 後端題庫，
-         涵蓋 Roy 在加密貨幣交易所（撮合、行情、對沖）與體育數據（Betradar、LMAX Disruptor）的實戰脈絡。
+         涵蓋加密貨幣交易所（撮合、行情、對沖）與體育數據（Betradar、LMAX Disruptor）的實戰脈絡。
          點題卡展開作答，勾選「已複習」自我追蹤。</p>
       <div class="meta">
         <span class="chip"><b>{total}</b> 題</span>

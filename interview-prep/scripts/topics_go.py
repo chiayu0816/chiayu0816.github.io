@@ -16,7 +16,30 @@ GO_TOPICS = [
             ("GOMAXPROCS 設多少合適？", "預設 = CPU 核心數；CPU-bound 保持預設；IO-bound 可略增但過多 P 增加調度開銷；容器內需配合 cgroup CPU quota 設定"),
         ],
         "pitfalls": ["混淆 M 數量與 goroutine 數量", "在 init 或 runtime.LockOSThread 後長期佔用 M", "以為 GOMAXPROCS=1 就完全串行（sysmon 與 GC 仍可能介入）"],
-        "resume": "Roy 在交易所行情與訂單處理中用大量 goroutine，理解 GMP 後避免在熱路徑阻塞 M（長 syscall），並用 worker pool 控制 goroutine 數量。",
+        "svg": """
+<svg viewBox="0 0 660 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GMP 調度模型：P 持有本地佇列，綁定 M，Work Stealing 平衡負載">
+  <rect x="32" y="36" width="270" height="120" rx="8" fill="#13161f" stroke="#56c2ff" stroke-width="1.5"/>
+  <text x="46" y="58" fill="#56c2ff" font-size="13" font-weight="700">P0 · local runq</text>
+  <circle cx="70" cy="92" r="14" fill="#ffb454"/><text x="70" y="97" fill="#0a0c11" font-size="11" text-anchor="middle">G</text>
+  <circle cx="108" cy="92" r="14" fill="#ffb454"/><text x="108" y="97" fill="#0a0c11" font-size="11" text-anchor="middle">G</text>
+  <circle cx="146" cy="92" r="14" fill="#ffb454"/><text x="146" y="97" fill="#0a0c11" font-size="11" text-anchor="middle">G</text>
+  <text x="46" y="136" fill="#9aa3b5" font-size="11">runnext · mcache</text>
+  <rect x="358" y="36" width="270" height="120" rx="8" fill="#13161f" stroke="#56c2ff" stroke-width="1.5"/>
+  <text x="372" y="58" fill="#56c2ff" font-size="13" font-weight="700">P1 · local runq</text>
+  <circle cx="396" cy="92" r="14" fill="#ffb454"/><text x="396" y="97" fill="#0a0c11" font-size="11" text-anchor="middle">G</text>
+  <text x="372" y="136" fill="#9aa3b5" font-size="11">空 → 觸發 work stealing</text>
+  <rect x="32" y="180" width="270" height="44" rx="8" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+  <text x="167" y="207" fill="#54dd9b" font-size="12" text-anchor="middle">M0 · OS thread（綁定 P0）</text>
+  <rect x="358" y="180" width="270" height="44" rx="8" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+  <text x="493" y="207" fill="#54dd9b" font-size="12" text-anchor="middle">M1 · OS thread（綁定 P1）</text>
+  <rect x="32" y="256" width="596" height="48" rx="8" fill="#0d1017" stroke="#6b7385" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="330" y="285" fill="#9aa3b5" font-size="12" text-anchor="middle">全域 run queue（sched.lock 保護，本地滿時溢出一半）</text>
+  <path d="M358 96 Q330 96 304 96" fill="none" stroke="#c79cff" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <text x="330" y="30" fill="#c79cff" font-size="11" text-anchor="middle">steal n/2</text>
+  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#c79cff"/></marker></defs>
+</svg>
+""".strip(),
+        "resume": "在加密貨幣交易所的行情與訂單處理場景中，會用大量 goroutine，理解 GMP 後可避免在熱路徑阻塞 M（長 syscall），並用 worker pool 控制 goroutine 數量。",
     },
     {
         "q": "什麼是 Work Stealing？何時觸發？",
@@ -75,7 +98,7 @@ GO_TOPICS = [
             ("goroutine 會映射到固定線程嗎？", "預設不會；runtime.LockOSThread() 可綁定 G 到 M"),
         ],
         "pitfalls": ["無限制 go func() 導致 OOM", "把 goroutine 當免費無限資源"],
-        "resume": "Roy 用 goroutine 處理行情推送，同時用 pprof goroutine profile 監控數量異常。",
+        "resume": "實務上用 goroutine 處理行情推送，同時用 pprof goroutine profile 監控數量異常。",
     },
     {
         "q": "Go GC 使用什麼演算法？三色標記如何運作？",
@@ -90,7 +113,33 @@ GO_TOPICS = [
             ("三色標記的漏標問題如何解決？", "寫屏障 + STW 短暫重新掃描 roots/stack；或 SATB/deletion barrier 變體"),
         ],
         "pitfalls": ["以為 GC 完全無 STW", "忽略 mark assist 導致 mutator 變慢"],
-        "resume": "K 線快取重構時 Roy 用 pprof alloc_space 觀察 GC 壓力，減少高頻路徑短生命物件分配。",
+        "svg": """
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三色標記：黑灰白物件與寫屏障示意">
+  <rect x="20" y="58" width="150" height="64" rx="8" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+  <text x="95" y="84" fill="#54dd9b" font-size="12" text-anchor="middle">GC Roots</text>
+  <text x="95" y="104" fill="#9aa3b5" font-size="10" text-anchor="middle">stack / 全域變數</text>
+  <circle cx="262" cy="90" r="28" fill="#3a4150" stroke="#e7eaf2" stroke-width="1.5"/>
+  <text x="262" y="86" fill="#e7eaf2" font-size="12" text-anchor="middle">黑</text>
+  <text x="262" y="102" fill="#9aa3b5" font-size="9" text-anchor="middle">掃完</text>
+  <circle cx="410" cy="90" r="28" fill="#9aa3b5"/>
+  <text x="410" y="86" fill="#0a0c11" font-size="12" text-anchor="middle">灰</text>
+  <text x="410" y="102" fill="#13161f" font-size="9" text-anchor="middle">待掃子</text>
+  <circle cx="558" cy="90" r="28" fill="#e7eaf2" stroke="#6b7385" stroke-width="1.5"/>
+  <text x="558" y="86" fill="#0a0c11" font-size="12" text-anchor="middle">白</text>
+  <text x="558" y="102" fill="#3a4150" font-size="9" text-anchor="middle">待清除</text>
+  <path d="M170 90 L232 90" stroke="#56c2ff" stroke-width="1.6" marker-end="url(#gc)"/>
+  <path d="M290 90 L380 90" stroke="#56c2ff" stroke-width="1.6" marker-end="url(#gc)"/>
+  <path d="M438 90 L528 90" stroke="#56c2ff" stroke-width="1.6" marker-end="url(#gc)"/>
+  <path d="M258 117 Q400 215 552 116" fill="none" stroke="#ff6b6b" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#gcr)"/>
+  <text x="405" y="208" fill="#ff6b6b" font-size="11" text-anchor="middle">write barrier：黑→白 新指標時補標記，維持不變式</text>
+  <text x="20" y="160" fill="#9aa3b5" font-size="11">標記從 roots 出發，灰色佇列掃空後只剩白色 → 並發清除回收</text>
+  <defs>
+    <marker id="gc" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#56c2ff"/></marker>
+    <marker id="gcr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#ff6b6b"/></marker>
+  </defs>
+</svg>
+""".strip(),
+        "resume": "K 線快取重構時用 pprof alloc_space 觀察 GC 壓力，減少高頻路徑短生命物件分配。",
     },
     {
         "q": "Go GC 的 STW 階段有哪些？還嚴重嗎？",
@@ -147,6 +196,32 @@ GO_TOPICS = [
             ("nil channel 讀寫行為？", "永久阻塞，select 中 nil channel 永不 ready"),
         ],
         "pitfalls": ["向 nil channel 發送阻塞（非 panic）", "有緩衝 channel 認為一定非阻塞"],
+        "svg": """
+<svg viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="hchan 環形緩衝與 sendq/recvq 等待佇列">
+  <text x="330" y="26" fill="#56c2ff" font-size="13" font-weight="700" text-anchor="middle">hchan：環形緩衝 + 等待佇列</text>
+  <rect x="22" y="66" width="120" height="96" rx="8" fill="#0d1017" stroke="#54dd9b" stroke-width="1.5"/>
+  <text x="82" y="86" fill="#54dd9b" font-size="11" text-anchor="middle">recvq</text>
+  <circle cx="82" cy="120" r="16" fill="#54dd9b"/><text x="82" y="124" fill="#06140d" font-size="10" text-anchor="middle">G</text>
+  <text x="82" y="153" fill="#9aa3b5" font-size="9" text-anchor="middle">等待接收</text>
+  <rect x="176" y="92" width="46" height="46" fill="#ffb454"/>
+  <rect x="224" y="92" width="46" height="46" fill="#ffb454"/>
+  <rect x="272" y="92" width="46" height="46" fill="#ffb454"/>
+  <rect x="320" y="92" width="46" height="46" fill="#13161f" stroke="#2f3645" stroke-width="1.2"/>
+  <rect x="368" y="92" width="46" height="46" fill="#13161f" stroke="#2f3645" stroke-width="1.2"/>
+  <rect x="416" y="92" width="46" height="46" fill="#13161f" stroke="#2f3645" stroke-width="1.2"/>
+  <text x="319" y="156" fill="#9aa3b5" font-size="10" text-anchor="middle">dataqsiz = 6（環形佇列）</text>
+  <path d="M199 64 L199 88" stroke="#56c2ff" stroke-width="1.6" marker-end="url(#ch)"/>
+  <text x="199" y="58" fill="#56c2ff" font-size="10" text-anchor="middle">recvx</text>
+  <path d="M343 178 L343 142" stroke="#c79cff" stroke-width="1.6" marker-end="url(#ch)"/>
+  <text x="343" y="192" fill="#c79cff" font-size="10" text-anchor="middle">sendx</text>
+  <rect x="518" y="66" width="120" height="96" rx="8" fill="#0d1017" stroke="#ff6b6b" stroke-width="1.5"/>
+  <text x="578" y="86" fill="#ff6b6b" font-size="11" text-anchor="middle">sendq</text>
+  <circle cx="578" cy="120" r="16" fill="#ff6b6b"/><text x="578" y="124" fill="#1a0606" font-size="10" text-anchor="middle">G</text>
+  <text x="578" y="153" fill="#9aa3b5" font-size="9" text-anchor="middle">buf 滿時等待</text>
+  <text x="330" y="228" fill="#9aa3b5" font-size="11" text-anchor="middle">lock 保護；無緩衝時 sender/receiver 直接 handoff（跳過 buf）</text>
+  <defs><marker id="ch" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#9aa3b5"/></marker></defs>
+</svg>
+""".strip(),
     },
     {
         "q": "select 如何實現？有多個 case ready 時怎麼選？",
@@ -175,7 +250,7 @@ GO_TOPICS = [
             ("多 goroutine 誰來 close？", "約定單一 owner 或 errgroup 最後一個完成者 close"),
         ],
         "pitfalls": ["double close panic", "receiver close", "close 後仍有 sender 競態 panic"],
-        "resume": "Roy 在行情 fan-out 中用 context 取消 + 單一 writer close，避免多 goroutine close 競態。",
+        "resume": "在行情 fan-out 中用 context 取消 + 單一 writer close，避免多 goroutine close 競態。",
     },
     {
         "q": "map 底層實現？hash 衝突與擴容（evacuation）？",
@@ -246,7 +321,7 @@ GO_TOPICS = [
             ("WithValue 线程安全吗？", "只读安全；Value key 应用自定义 unexported type 防冲突"),
         ],
         "pitfalls": ["忘记 cancel 导致 timer/goroutine 泄漏", "用 context 传大量业务参数"],
-        "resume": "Roy 在 gRPC/WebSocket 服务中将 client disconnect 通过 context 传到 DB/Redis 查询，避免 goroutine 泄漏。",
+        "resume": "在 gRPC/WebSocket 服务中将 client disconnect 通过 context 传到 DB/Redis 查询，避免 goroutine 泄漏。",
     },
     {
         "q": "sync.Mutex 和 RWMutex 原理与使用场景？",
@@ -275,7 +350,7 @@ GO_TOPICS = [
             ("sync.Map vs map+RWMutex？", "一般 map+mutex 更简单；sync.Map 特定模式少锁"),
         ],
         "pitfalls": ["WaitGroup Add 与 go 并发竞态", "Pool 存带状态未 Reset 的对象", "sync.Map 当通用 map 滥用"],
-        "resume": "Roy 用 errgroup+context 替代裸 WaitGroup 管理子任务生命周期。",
+        "resume": "實務上用 errgroup+context 替代裸 WaitGroup 管理子任务生命周期。",
     },
     {
         "q": "Go Memory Model（happens-before）？",
@@ -304,7 +379,7 @@ GO_TOPICS = [
             ("如何减少逃逸？", "值传递、预分配、避免 interface{}、sync.Pool"),
         ],
         "pitfalls": ["盲目 unsafe", "忽略 -m 诊断"],
-        "resume": "interview-go q019/q020 类题：Roy 在热路径避免 fmt 与不必要的 heap boxing。",
+        "resume": "interview-go q019/q020 类题：在热路径避免 fmt 与不必要的 heap boxing。",
     },
     {
         "q": "如何排查 goroutine 泄漏？",
@@ -319,7 +394,7 @@ GO_TOPICS = [
             ("泄漏与 GC 关系？", "G 本身占 stack 内存，泄漏 G 多 → RSS 涨"),
         ],
         "pitfalls": ["只重启不查根因", "在泄漏路径加更多 goroutine"],
-        "resume": "Luxons 时用 pprof goroutine profile 定位 HTTP handler 未 timeout 的第三方 API 调用导致堆积。",
+        "resume": "实务上曾用 pprof goroutine profile 定位 HTTP handler 未 timeout 的第三方 API 调用导致堆积。",
     },
     {
         "q": "race detector 如何使用？原理？",
@@ -404,7 +479,7 @@ GO_TOPICS = [
             ("pprof 如何定位？", "goroutine stack 见 io.ReadAll 或 time.Sleep 在 handler 泄漏路径"),
         ],
         "pitfalls": ["只用 DefaultClient", "Close 但不 Drain body"],
-        "resume": "Roy 在 Luxons 修复第三方 API 调用：context timeout + body drain + connection pool 调优。",
+        "resume": "實務上曾修复第三方 API 调用泄漏：context timeout + body drain + connection pool 调优。",
     },
     {
         "q": "CSP 模型与 Go channel 的设计哲学？",
@@ -475,7 +550,7 @@ GO_TOPICS = [
             ("CPU 100% 但 pprof 空？", "可能在 cgo/内核/或未采 long enough"),
         ],
         "pitfalls": ["只看 CPU 不看 alloc", "优化非 hot path"],
-        "resume": "Roy 用 pprof + flame graph 优化 K 线路径与 Luxons HTTP 瓶颈。",
+        "resume": "實務上用 pprof + flame graph 优化 K 线路径与第三方 HTTP 瓶颈。",
     },
     {
         "q": "errgroup 与 context 组合模式？",
@@ -518,7 +593,7 @@ GO_TOPICS = [
             ("go.mod 寫 go 1.21 但用 1.22 工具鏈編譯？", "語言語義以 go.mod 版本為準，仍用舊 loopvar 行為，避免隨工具鏈漂移"),
         ],
         "pitfalls": ["1.21 以前在 range 迴圈啟動 goroutine 未複製變數", "誤以為所有專案都已是新語義（取決於 go.mod）", "對迴圈變數取位址 &v 全部指向同一元素"],
-        "resume": "Roy 行情 fan-out 啟動大量 goroutine，注意 loopvar 捕獲，避免所有 worker 都處理同一個 symbol。",
+        "resume": "行情 fan-out 啟動大量 goroutine 時，注意 loopvar 捕獲，避免所有 worker 都處理同一個 symbol。",
     },
     {
         "q": "手寫一個帶限流的 worker pool（Go coding）？",
@@ -550,7 +625,7 @@ GO_TOPICS = [
             ("如何支援取消？", "傳入 context，worker 內 select{ case <-ctx.Done(): return; case j, ok := <-jobs: ... }"),
         ],
         "pitfalls": ["忘記 close(jobs) 導致 worker 永遠阻塞（goroutine 洩漏）", "worker 內共享 slice 未加鎖造成 data race", "panic 未 recover 拖垮整個 pool"],
-        "resume": "Roy 在交易所行情/訂單處理用 worker pool 控制 goroutine 數量，避免無限 go func() 造成 OOM。",
+        "resume": "在交易所行情/訂單處理用 worker pool 控制 goroutine 數量，避免無限 go func() 造成 OOM。",
     },
     {
         "q": "如何合併多個 channel（fan-in / merge）？（Go coding）",
@@ -584,6 +659,6 @@ GO_TOPICS = [
             ("LMAX Disruptor 與 channel fan-in 差異？", "Disruptor 用 ring buffer 單寫多讀、無鎖序號、低延遲；channel 有 mutex 與排程開銷"),
         ],
         "pitfalls": ["在所有 sender 結束前 close(out)", "Go 1.22 前未傳參導致所有 goroutine 讀同一個 c"],
-        "resume": "Roy 體育數據管線把多來源事件 fan-in 後再分類處理，思路類似 Disruptor 但以 channel/goroutine 實作。",
+        "resume": "體育數據管線把多來源事件 fan-in 後再分類處理，思路類似 Disruptor 但以 channel/goroutine 實作。",
     },
 ]

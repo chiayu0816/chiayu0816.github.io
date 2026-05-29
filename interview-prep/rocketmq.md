@@ -1,6 +1,6 @@
 # RocketMQ 面試 Q&A
 
-> 來源：tech-vault、Roy 交易所實務
+> 來源：tech-vault、交易所實務
 > 題數：12 道 | 深度：Senior Backend 面試級
 > 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
 
@@ -27,7 +27,7 @@ NameServer 輕量路由註冊（無強一致）；Broker 存訊息 Master-Slave�
 - Broker 磁碟滿
 
 **結合履歷：**
-Roy 交易所 gRPC/WS 整合 RocketMQ 做 market/trading flow。
+交易所場景以 gRPC/WS 整合 RocketMQ 承載 market/trading flow。
 
 ---
 ### Q: Topic、Tag、MessageQueue 關係？
@@ -114,7 +114,7 @@ MessageQueueSelector 同 sharding key 進同一 Queue；Consumer 單執行緒消
 - 回查邏輯非冪等
 
 **結合履歷：**
-Roy 交易所可用事務訊息保證 trading 狀態與下游通知一致。
+交易所場景可用事務訊息保證 trading 狀態與下游通知一致。
 
 ---
 ### Q: RocketMQ 消費模式 Push vs Pull？
@@ -264,6 +264,6 @@ Market data、order events、hedging signals、notification 解耦；與 gRPC/WS
 - 訊息無序導致狀態錯
 
 **結合履歷：**
-Roy sole Go owner：matching/market data/hedging 經 RocketMQ 整合。
+交易所場景（matching/market data/hedging）經 RocketMQ 整合解耦。
 
 ---

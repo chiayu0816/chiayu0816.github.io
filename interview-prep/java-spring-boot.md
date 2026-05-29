@@ -1,6 +1,6 @@
 # Java / Spring Boot 面試 Q&A
 
-> 來源：tech-vault、Roy Apezgo/INNO 實務
+> 來源：tech-vault、Spring Boot 重構實務
 > 題數：16 道 | 深度：Senior Backend 面試級
 > 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
 
@@ -93,7 +93,7 @@ REQUIRED 預設加入；REQUIRES_NEW 新事務；NESTED savepoint。失效：非
 ### Q: Spring Boot 與 Struts 遷移要點？
 
 **核心回答：**
-Roy Apezgo：Struts→Spring Boot。Action→Controller REST；XML→Java config/annotation；依賴注入替代 singleton util；統一 exception handler。
+實務遷移案例：Struts→Spring Boot。Action→Controller REST；XML→Java config/annotation；依賴注入替代 singleton util；統一 exception handler。
 
 **深入原理：**
 - session 管理遷移
@@ -111,7 +111,7 @@ Roy Apezgo：Struts→Spring Boot。Action→Controller REST；XML→Java config
 - 無整合測試
 
 **結合履歷：**
-Roy Apezgo Tech Lead：Struts→Spring Boot ECM/SCM。
+實務（Tech Lead）：Struts→Spring Boot ECM/SCM 重構。
 
 ---
 ### Q: JVM 記憶體結構與 GC 概述？
@@ -303,10 +303,10 @@ Nacos/Eureka 發現；Gateway 路由；OpenFeign 客戶端；Sentinel/Hystrix �
 - 無 contract test
 
 ---
-### Q: Roy Java 經驗如何講？
+### Q: 資深 Java 經驗如何在面試中陳述？
 
 **核心回答：**
-10+ 年 Java；Apezgo Spring Boot 重構 Tech Lead；INNO/Luxons Go+Java 混合；Oracle/MySQL/MSSQL；Jenkins CI/CD。
+10+ 年 Java；Spring Boot 重構 Tech Lead；Go+Java 混合棧；Oracle/MySQL/MSSQL；Jenkins CI/CD。
 
 **深入原理：**
 - legacy 維護
@@ -323,7 +323,7 @@ Nacos/Eureka 發現；Gateway 路由；OpenFeign 客戶端；Sentinel/Hystrix �
 - 只講舊專案無深度
 
 **結合履歷：**
-Roy：Spring Boot 重構、INNO Java/Go、Oracle/MySQL。
+實務：Spring Boot 重構、Java/Go 混合棧、Oracle/MySQL。
 
 ---
 ### Q: JVM 類載入機制與雙親委派模型？
@@ -348,6 +348,6 @@ Roy：Spring Boot 重構、INNO Java/Go、Oracle/MySQL。
 - 只覆寫 findClass 以為能改委派（應覆寫 loadClass）
 
 **結合履歷：**
-Roy 維護 Java 服務時遇 legacy 與容器類載入隔離問題，理解委派模型有助排查 ClassLoader 衝突。
+維護 Java 服務時常遇 legacy 與容器類載入隔離問題，理解委派模型有助排查 ClassLoader 衝突。
 
 ---

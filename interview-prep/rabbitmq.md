@@ -1,6 +1,6 @@
 # RabbitMQ 面試 Q&A
 
-> 來源：tech-vault、Roy INNO 體育資料實務
+> 來源：tech-vault、體育資料實務
 > 題數：12 道 | 深度：Senior Backend 面試級
 > 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
 
@@ -72,21 +72,23 @@ Consumer manual ack：處理完 basicAck；失敗 basicNack/reject，requeue 或
 ### Q: 持久化與 durability？
 
 **核心回答：**
-Queue durable、message deliveryMode=2 持久化到磁碟。Exchange durable。仍可能丟：未 confirm、叢集映象 lag。
+要真正不丟訊息需**三者同時成立**：queue 宣告為 durable（重啟仍存在）、訊息 deliveryMode=2（持久化到磁碟）、Publisher Confirm（等 broker 落盤/複製後才確認）。只設其一仍會丟：durable queue 配 transient 訊息，重啟照樣不見。且**單機持久化 ≠ 高可用**——節點掛掉佇列仍不可用，要 HA 需 quorum queue（Raft 多副本）。
 
 **深入原理：**
-- lazy queue 大數據
-- quorum queue Raft
-- classic mirrored 已 deprecated
+- Publisher Confirm 是非同步 ack：broker 持久化（或複製到 quorum 多數）後才回 ack，未 ack 的訊息應重送
+- Quorum queue（3.8+，基於 Raft）多副本強一致，取代已 deprecated 的 classic mirrored queue
+- lazy queue 直接把訊息落盤、減少記憶體佔用，適合大量堆積；代價是吞吐低於純記憶體
+- 持久化只保證『落到該節點磁碟』，跨節點可靠性靠 quorum 複製多數派
 
 **考官可能追問：**
 - Q: Quorum queue？
-  - A: 3.8+ 推薦高可靠
+  - A: 3.8+ 推薦高可靠，Raft 多副本
 - Q: 效能？
-  - A: 持久化慢於記憶體
+  - A: 持久化+confirm 慢於記憶體，吞吐與可靠性需權衡
 
 **常見陷阱 / 易錯點：**
-- durable queue 但訊息 transient
+- durable queue 但訊息 transient 仍丟
+- 只持久化不 confirm，落盤前 crash 仍丟
 - 磁碟慢阻塞 publish
 
 ---
@@ -156,7 +158,7 @@ Classic 叢集後設資料共享，queue 單 node（映象已棄）。Quorum que
 ### Q: RabbitMQ vs Kafka/RocketMQ？
 
 **核心回答：**
-Rabbit：低延遲、複雜路由、訊息刪除即無；Kafka/RMQ：log 可回溯、高吞吐。Roy INNO 用 Rabbit 分發部分體育資料。
+Rabbit：低延遲、複雜路由、訊息刪除即無；Kafka/RMQ：log 可回溯、高吞吐。體育資料場景曾用 Rabbit 分發部分資料。
 
 **深入原理：**
 - Rabbit 適合 task queue RPC
@@ -237,10 +239,10 @@ Memory alarm 阻塞 connection publish；disk free 限制。Monitor queue 長度
 - requeue 插入隊首破壞
 
 ---
-### Q: RabbitMQ 在 Roy 體育資料專案中的角色？
+### Q: RabbitMQ 在體育資料專案中的角色？
 
 **核心回答：**
-INNO 時期與 Kafka 並用：Betgenius/Betradar 資料經 REST+Kafka+Rabbit 多通道分發下游，Rabbit 適合特定訂閱路由。
+與 Kafka 並用：Betgenius/Betradar 資料經 REST+Kafka+Rabbit 多通道分發下游，Rabbit 適合特定訂閱路由。
 
 **深入原理：**
 - Topic exchange 按 sport
@@ -258,6 +260,6 @@ INNO 時期與 Kafka 並用：Betgenius/Betradar 資料經 REST+Kafka+Rabbit 多
 - 運維多套 MQ
 
 **結合履歷：**
-Roy INNO：multi-vendor sports data via REST/Kafka/RabbitMQ。
+體育資料實務：multi-vendor sports data via REST/Kafka/RabbitMQ。
 
 ---

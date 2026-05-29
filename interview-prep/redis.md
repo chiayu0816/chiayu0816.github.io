@@ -17,6 +17,36 @@ String(SDS)、List(quicklist=ziplist+linkedlist)、Hash(ziplist/hashtable)、Set
 - ziplist：連續記憶體，小 hash/zset 省空間
 - encoding 轉換不可逆（大→小需主動刪重建）
 
+```svg
+<svg viewBox="0 0 660 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="skiplist 多層索引結構，查詢平均 O(log N)">
+  <text x="330" y="22" fill="#56c2ff" font-size="13" font-weight="700" text-anchor="middle">skiplist：上層稀疏索引，查詢平均 O(log N)</text>
+  <text x="18" y="62" fill="#9aa3b5" font-size="10">L2</text>
+  <text x="18" y="110" fill="#9aa3b5" font-size="10">L1</text>
+  <text x="18" y="158" fill="#9aa3b5" font-size="10">L0</text>
+  <g font-size="12" text-anchor="middle">
+    <rect x="25" y="43" width="46" height="30" rx="5" fill="#0d1017" stroke="#54dd9b"/><text x="48" y="63" fill="#54dd9b">head</text>
+    <rect x="283" y="43" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="306" y="63" fill="#ffb454">19</text>
+    <rect x="543" y="43" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="566" y="63" fill="#ffb454">38</text>
+    <rect x="25" y="91" width="46" height="30" rx="5" fill="#0d1017" stroke="#54dd9b"/><text x="48" y="111" fill="#54dd9b">head</text>
+    <rect x="153" y="91" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="176" y="111" fill="#ffb454">7</text>
+    <rect x="283" y="91" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="306" y="111" fill="#ffb454">19</text>
+    <rect x="543" y="91" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="566" y="111" fill="#ffb454">38</text>
+    <rect x="25" y="139" width="46" height="30" rx="5" fill="#0d1017" stroke="#54dd9b"/><text x="48" y="159" fill="#54dd9b">head</text>
+    <rect x="153" y="139" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="176" y="159" fill="#ffb454">7</text>
+    <rect x="283" y="139" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="306" y="159" fill="#ffb454">19</text>
+    <rect x="413" y="139" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="436" y="159" fill="#ffb454">26</text>
+    <rect x="543" y="139" width="46" height="30" rx="5" fill="#13161f" stroke="#56c2ff"/><text x="566" y="159" fill="#ffb454">38</text>
+  </g>
+  <g stroke="#56c2ff" stroke-width="1.4" marker-end="url(#sk)">
+    <path d="M71 58 L283 58"/><path d="M329 58 L543 58"/>
+    <path d="M71 106 L153 106"/><path d="M199 106 L283 106"/><path d="M329 106 L543 106"/>
+    <path d="M71 154 L153 154"/><path d="M199 154 L283 154"/><path d="M329 154 L413 154"/><path d="M459 154 L543 154"/>
+  </g>
+  <text x="330" y="196" fill="#9aa3b5" font-size="10" text-anchor="middle">向右走過頭就下降一層，逐層逼近目標 → ZSET range/score 查詢 O(log N)</text>
+  <defs><marker id="sk" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#56c2ff"/></marker></defs>
+</svg>
+```
+
 **考官可能追問：**
 - Q: K 線場景為何用 ZSET？
   - A: score=時間戳，member=OHLC JSON；ZREVRANGEBYSCORE 取時間窗 O(logN+M)
@@ -28,7 +58,7 @@ String(SDS)、List(quicklist=ziplist+linkedlist)、Hash(ziplist/hashtable)、Set
 - 誤用 KEYS * 阻塞
 
 **結合履歷：**
-Roy 用 Redis ZSET 重構 K 線快取，將圖表載入從 3–5s 降至 300–500ms。
+實務上用 Redis ZSET 重構 K 線快取，將圖表載入從 3–5s 降至 300–500ms。
 
 ---
 ### Q: SDS 與 C 字串有何不同？
@@ -93,7 +123,7 @@ always：每條命令 fsync，最安全最慢；everysec：每秒 fsync，預設
 - always 在 SSD 上仍可能拖垮 IOPS
 
 **結合履歷：**
-Roy 在交易所場景評估 RPO：行情快取可重建用 RDB+短 AOF；關鍵狀態需 everysec 或混合。
+在交易所場景評估 RPO：行情快取可重建用 RDB+短 AOF；關鍵狀態需 everysec 或混合。
 
 ---
 ### Q: Redis 主從複製流程？
@@ -180,7 +210,7 @@ maxmemory 達上限按 policy 淘汰：noeviction、allkeys-lru、volatile-lru�
 - 互斥鎖未釋放死鎖
 
 **結合履歷：**
-Luxons 修復 Redis 快取穿透：空值快取 + 布隆過濾非法 ID。
+實務上修復 Redis 快取穿透：空值快取 + 布隆過濾非法 ID。
 
 ---
 ### Q: Redis 分散式鎖如何實現？Redlock 爭議？
@@ -226,7 +256,7 @@ Hot key：單 key QPS 過高，單 slot/單 thread 瓶頸；解：local cache、
 - 熱 key 本地 cache 不一致
 
 **結合履歷：**
-Roy K 線 ZSET 按 symbol+interval 分 key，避免單 key 百萬 candle。
+K 線 ZSET 按 symbol+interval 分 key，避免單 key 百萬 candle。
 
 ---
 ### Q: Redis 6 Threaded I/O 解決什麼？
@@ -271,7 +301,7 @@ Cache-Aside：讀 miss 查 DB 寫 cache；寫 DB 後刪 cache（或 delay double
 - 無 TTL 兜底
 
 **結合履歷：**
-Roy 架構：K 線寫 MySQL SP 後刪/更新 Redis ZSET，讀以 cache 為主、DB 為 fallback。
+實務架構：K 線寫 MySQL SP 後刪/更新 Redis ZSET，讀以 cache 為主、DB 為 fallback。
 
 ---
 ### Q: Pipeline 與 Transaction 差異？
@@ -440,6 +470,6 @@ ZSET score=timestamp member=OHLC JSON 或 compact binary；按 symbol:interval �
 - 無 trim 記憶體爆炸
 
 **結合履歷：**
-Roy 實際最佳化：MySQL SP 聚合 + Redis ZSET 分 key + index rebuild，延遲 3–5s→300–500ms。
+實際最佳化：MySQL SP 聚合 + Redis ZSET 分 key + index rebuild，延遲 3–5s→300–500ms。
 
 ---
