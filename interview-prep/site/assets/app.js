@@ -20,6 +20,11 @@
     return (tb ? tb.getBoundingClientRect().height : 74) + 10;
   }
 
+  function syncTopbarHeight(){
+    var tb = $(".topbar");
+    if(tb) document.documentElement.style.setProperty("--topbar-outer-h", tb.offsetHeight + "px");
+  }
+
   function isMobileNav(){ return window.matchMedia("(max-width: 899px)").matches; }
 
   function setNavOpen(open){
@@ -245,4 +250,14 @@
   });
 
   updateProgress();
+
+  syncTopbarHeight();
+  requestAnimationFrame(syncTopbarHeight);
+  window.addEventListener("load", syncTopbarHeight, {passive:true});
+  if(typeof ResizeObserver !== "undefined"){
+    var topbarEl = $(".topbar");
+    if(topbarEl) new ResizeObserver(syncTopbarHeight).observe(topbarEl);
+  } else {
+    window.addEventListener("resize", syncTopbarHeight, {passive:true});
+  }
 })();

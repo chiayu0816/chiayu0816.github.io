@@ -1,5 +1,6 @@
 /* Interview Prep — technical-editorial dark study console */
 :root{
+  color-scheme:dark;
   --bg:#0a0c11; --bg2:#0d1017; --surface:#13161f; --surface2:#171b25;
   --border:#242a36; --border2:#2f3645;
   --text:#e7eaf2; --muted:#9aa3b5; --faint:#6b7385;
@@ -11,6 +12,7 @@
   --maxw:1180px;
   --touch-min:44px;
   --topbar-h:58px;
+  --topbar-outer-h:calc(var(--topbar-h) + var(--safe-top) + 24px);
   --bottom-nav-h:0px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-right:env(safe-area-inset-right,0px);
@@ -18,11 +20,12 @@
   --safe-left:env(safe-area-inset-left,0px);
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;overflow-x:hidden}
+html{scroll-behavior:smooth;overflow-x:clip}
 body{
   margin:0; font-family:var(--sans); color:var(--text); background:var(--bg);
   line-height:1.6; -webkit-font-smoothing:antialiased; letter-spacing:.01em;
-  overflow-x:hidden;
+  overflow-x:clip;
+  padding-top:var(--topbar-outer-h);
   padding-bottom:calc(var(--bottom-nav-h) + var(--safe-bottom));
   background-image:
     radial-gradient(900px 600px at 12% -8%, rgba(255,180,84,.10), transparent 60%),
@@ -43,7 +46,7 @@ button,.nav-item,.q-row,.rev,.bn-btn,.nav-toggle{touch-action:manipulation}
 
 /* Topbar */
 .topbar{
-  position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+  position:fixed;top:0;left:0;right:0;z-index:50;backdrop-filter:blur(14px);
   background:rgba(10,12,17,.82);border-bottom:1px solid var(--border);
   padding-top:var(--safe-top);
 }
@@ -106,10 +109,25 @@ body.nav-open{overflow:hidden}
   padding:26px 22px 90px;position:relative;z-index:1;
 }
 .sidebar{
-  position:sticky;top:calc(var(--topbar-h) + var(--safe-top) + 12px);
-  align-self:start;max-height:calc(100vh - var(--topbar-h) - var(--safe-top) - 24px);
-  overflow:auto;padding-right:4px;-webkit-overflow-scrolling:touch;
+  position:fixed;z-index:40;
+  top:calc(var(--topbar-outer-h) + 26px);
+  left:max(22px,calc((100vw - var(--maxw)) / 2 + 22px));
+  width:248px;
+  max-height:calc(100vh - var(--topbar-outer-h) - 38px);
+  overflow-y:auto;overflow-x:hidden;
+  scrollbar-gutter:stable;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border2) transparent;
+  -webkit-overflow-scrolling:touch;
 }
+.sidebar::-webkit-scrollbar{width:6px}
+.sidebar::-webkit-scrollbar-track{background:transparent}
+.sidebar::-webkit-scrollbar-thumb{
+  background:var(--border2);border-radius:999px;
+  border:2px solid transparent;background-clip:padding-box;
+}
+.sidebar::-webkit-scrollbar-thumb:hover{background:var(--faint)}
+#content{grid-column:2;min-width:0}
 .side-title{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--faint);
   text-transform:uppercase;margin:4px 0 12px 10px}
 .nav-item{
@@ -167,7 +185,7 @@ body.nav-open{overflow:hidden}
   border:1px solid var(--border);border-radius:999px;padding:6px 12px}
 
 /* Tech section */
-.tech{margin:0 0 14px;scroll-margin-top:calc(var(--topbar-h) + var(--safe-top) + 16px)}
+.tech{margin:0 0 14px;scroll-margin-top:calc(var(--topbar-outer-h) + 16px)}
 .tech-head{
   display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;
   padding:26px 0 14px;border-bottom:1px solid var(--border);margin-bottom:18px;
@@ -257,6 +275,7 @@ mark{background:rgba(255,180,84,.30);color:#fff;border-radius:3px;padding:0 1px}
 /* Tablet: drawer nav, compact topbar */
 @media (max-width:899px){
   .layout{grid-template-columns:1fr;gap:0;padding:16px max(14px,var(--safe-right)) 72px max(14px,var(--safe-left))}
+  #content{grid-column:1}
   .nav-toggle{display:flex}
   .sidebar{
     position:fixed;top:0;left:0;bottom:0;z-index:70;width:min(300px,88vw);
@@ -266,7 +285,7 @@ mark{background:rgba(255,180,84,.30);color:#fff;border-radius:3px;padding:0 1px}
     box-shadow:8px 0 32px rgba(0,0,0,.35);
   }
   body.nav-open .sidebar{transform:translateX(0)}
-  .side-title{display:block;margin-top:calc(var(--topbar-h) + var(--safe-top))}
+  .side-title{display:block;margin-top:var(--topbar-outer-h)}
   .nav-scroll{display:block;overflow:visible;padding:0}
   .nav-item{border-color:transparent}
   .nav-item .ct{display:inline}
