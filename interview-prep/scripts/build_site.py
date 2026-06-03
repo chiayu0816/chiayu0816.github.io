@@ -569,8 +569,8 @@ def build_index_html(data: dict) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>後端面試準備 · Senior Backend</title>
-<meta name="description" content="Senior Go/Java 後端面試準備 · {total} 題技術深度問答">
+<title>Senior 後端面試題庫 · Go/Java</title>
+<meta name="description" content="Senior Go/Java 後端面試題庫 · {total} 題五段式 Q&A，含原理追問與實務場景，可離線瀏覽">
 <meta name="theme-color" content="#0a0c11">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -618,10 +618,11 @@ def build_index_html(data: dict) -> str:
 
   <main id="content">
     <section class="hero">
-      <h1>面試準備</h1>
-      <p>以「核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 結合履歷」五段式整理的 Senior Go / Java 後端題庫，
-         涵蓋加密貨幣交易所（撮合、行情、對沖）與體育數據（Betradar、LMAX Disruptor）的實戰脈絡。
-         點題卡展開作答，勾選「已複習」自我追蹤。</p>
+      <h1>Senior 後端<span class="em">面試題庫</span></h1>
+      <p class="hero-lead">Go / Java · {total} 題 · 五段式可開口作答</p>
+      <p>每題依「核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 實務場景」整理，目標是<strong>聽得懂追問、講得出原理</strong>。
+         涵蓋交易所（撮合、行情、對沖）與高吞吐數據管線等 Senior 常見脈絡。
+         展開題卡練口述，勾選「已複習」在本機追蹤進度；歡迎在 GitHub 討論與共筆。</p>
       <div class="meta">
         <span class="chip"><b>{total}</b> 題</span>
         <span class="chip"><b>{len(data['techs'])}</b> 項技術</span>
