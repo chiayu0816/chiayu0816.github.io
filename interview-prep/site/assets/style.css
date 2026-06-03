@@ -86,6 +86,14 @@ body.nav-open .nav-toggle span:nth-child(3){transform:translateY(-5px) rotate(-4
   font-size:10px;color:var(--faint);border:1px solid var(--border2);border-radius:5px;padding:2px 7px;
 }
 .topbar .progress-wrap{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.topbar-linkedin{
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  width:var(--touch-min);height:var(--touch-min);
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--surface);color:var(--muted);transition:.18s;
+}
+.topbar-linkedin:hover{color:var(--accent);border-color:rgba(255,180,84,.45)}
+.topbar-linkedin svg{width:18px;height:18px;fill:currentColor}
 .progress-num{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
 .progress-num b{color:var(--accent)}
 .ring{--p:0;width:34px;height:34px;border-radius:50%;flex-shrink:0;
@@ -183,6 +191,8 @@ body.nav-open{overflow:hidden}
 .hero .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
 .chip{font-family:var(--mono);font-size:11.5px;color:var(--muted);background:var(--surface);
   border:1px solid var(--border);border-radius:999px;padding:6px 12px}
+a.chip.chip-link{text-decoration:none;transition:border-color .15s,color .15s}
+a.chip.chip-link:hover{color:var(--accent);border-color:rgba(255,180,84,.45)}
 
 /* Tech section */
 .tech{margin:0 0 14px;scroll-margin-top:calc(var(--topbar-outer-h) + 16px)}
