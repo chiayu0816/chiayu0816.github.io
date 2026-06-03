@@ -103,11 +103,6 @@
 
 ---
 
-## 本地原始碼參考
+## 擴充題庫時的參考來源
 
-克隆於 `interview-prep-source/`（generate 時可參考）：
-
-- `go-questions/content/` — Go 底層 chapters
-- `interview-go/{redis,mysql,architecture,question,base}/`
-- `tech-vault/README.md` — DevOps/System Design
-- `go-interview-practice/` — coding exercises
+題庫正文已收錄在 `scripts/topics_*.py` 與各 `.md`，**不必**把上游 repo 放進本倉庫。若要新增題目，可自行 clone 頁首列出的開源專案到本機任意路徑查閱。

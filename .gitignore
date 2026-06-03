@@ -1,4 +1,5 @@
 .DS_Store
+interview-prep-source/
 __pycache__/
 *.pyc
 .env
