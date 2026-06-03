@@ -38,7 +38,7 @@
    python3 scripts/build_site.py
    ```
 
-6. 更新 `interview-prep/README.md` 題數表；若有重大變更，更新根目錄 `CHANGELOG.md`。
+6. 更新 `interview-prep/README.md` 題數表。
 7. 開 PR，說明新增/修改範圍與來源。
 
 ---
@@ -51,12 +51,6 @@
 - [ ] 答案達 Senior 深度（原理與追問），非死記定義
 - [ ] 未直接編輯 `site/assets/data.js`
 - [ ] `build_site.py` 可成功執行
-
----
-
-## 行為準則
-
-請遵守 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
 
 ---
 

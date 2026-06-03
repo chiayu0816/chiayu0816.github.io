@@ -81,24 +81,7 @@
 |----|------|------|------|
 | 15 | Java / Spring Boot | 15 | Spring Boot 重構 + 事務/AOP 追問 |
 | 16 | Docker / AWS | 15 | Docker Compose + RDS/ElastiCache |
-| 17–21 | 弱項重讀 + 履歷 STAR 每亮點 5 分鐘 | — | K線/Disruptor/Betradar/notification |
-
----
-
-## 履歷亮點速記（面試開場）
-
-1. **K 線延遲最佳化**：MySQL SP + index rebuild + Redis ZSET 重構 → 3–5s → 300–500ms  
-2. **交易所 sole Go owner**：matching、market data、liquidity、hedging、gRPC/WS/RocketMQ  
-3. **體育資料**：Betradar 接入、Kafka、LMAX Disruptor 並行、>1000ms → 亞秒  
-4. **生產調優**：pprof、flame graph、Redis 快取穿透修復  
-5. **Spring Boot 重構**：Struts → Spring Boot + Jenkins CI/CD  
-6. **AI 輔助交付**：Cursor、MCP、agents、RAG（全棧專案）
-
----
-
-## Notion
-
-同步副本：[面試技術準備](https://www.notion.so/36781d1e116e803c891aed65a942119f) 頁面下各技術子頁。
+| 17–21 | 弱項重讀 + 全真模擬 | — | 針對不熟技術補強 |
 
 ---
 
