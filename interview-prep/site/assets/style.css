@@ -200,6 +200,14 @@ body.nav-open{overflow:hidden}
   letter-spacing:-.02em;line-height:1.15}
 .hero h1 .em{color:var(--accent)}
 .hero p{color:var(--muted);max-width:680px;margin:6px 0 0;font-size:15px;line-height:1.65}
+.hero p.hero-notice{
+  margin-top:12px;padding:12px 14px;font-size:13.5px;line-height:1.6;
+  color:var(--muted);background:rgba(255,107,107,.06);
+  border:1px solid rgba(255,107,107,.28);border-radius:var(--radius-sm);
+}
+.hero p.hero-notice strong{color:var(--c-trap);font-weight:600}
+.hero p.hero-notice a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.hero p.hero-notice a:hover{color:var(--text)}
 .hero p.hero-lead{font-family:var(--mono);font-size:13px;color:var(--accent);opacity:.92;
   margin:10px 0 14px;line-height:1.45;letter-spacing:.01em}
 .hero p.hero-lead + p{margin-top:0}

@@ -341,6 +341,14 @@ a{color:var(--accent);text-decoration:none}
   letter-spacing:-.02em;line-height:1.15}
 .hero h1 .em{color:var(--accent)}
 .hero p{color:var(--muted);max-width:680px;margin:6px 0 0;font-size:14.5px}
+.hero p.hero-notice{
+  margin-top:12px;padding:12px 14px;font-size:13.5px;line-height:1.6;
+  color:var(--muted);background:rgba(255,107,107,.06);
+  border:1px solid rgba(255,107,107,.28);border-radius:var(--radius-sm);
+}
+.hero p.hero-notice strong{color:var(--c-trap);font-weight:600}
+.hero p.hero-notice a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.hero p.hero-notice a:hover{color:var(--text)}
 .hero .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
 .chip{font-family:var(--mono);font-size:11.5px;color:var(--muted);background:var(--surface);
   border:1px solid var(--border);border-radius:999px;padding:5px 12px}
@@ -671,11 +679,15 @@ def build_index_html(data: dict) -> str:
 
   <main id="content">
     <section class="hero">
-      <h1>Senior 後端<span class="em">面試題庫</span></h1>
-      <p class="hero-lead">Go / Java · {total} 題 · 五段式可開口作答</p>
-      <p>每題依「核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 實務場景」整理，目標是<strong>聽得懂追問、講得出原理</strong>。
-         涵蓋交易所（撮合、行情、對沖）與高吞吐數據管線等 Senior 常見脈絡。
-         展開題卡練口述，勾選「已複習」在本機追蹤進度；歡迎在 GitHub 討論與共筆。</p>
+      <h1>Senior Backend <span class="em">Interview Prep</span></h1>
+      <p class="hero-notice" role="note">
+        <strong>⚠ 使用提醒</strong>　本題庫不保證內容之正確性、完整性或時效，僅供面試準備參考。
+        若發現錯誤或建議，請透過
+        <a href="https://github.com/chiayu0816/chiayu0816.github.io/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Pull Request</a>
+        或
+        <a href="https://github.com/chiayu0816/chiayu0816.github.io/discussions" target="_blank" rel="noopener noreferrer">Discussions</a>
+        回報與討論。
+      </p>
       <div class="meta">
         <span class="chip"><b>{total}</b> 題</span>
         <span class="chip"><b>{len(data['techs'])}</b> 項技術</span>

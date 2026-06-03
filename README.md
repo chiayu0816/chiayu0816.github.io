@@ -4,8 +4,6 @@
 
 **線上學習站：** [https://chiayu0816.github.io/](https://chiayu0816.github.io/)
 
-> **站點說明：** 本網址已改為面試準備題庫。舊「CodeLife Chronicles」程式筆記已封存於 [codelife-chronicles-archive](https://github.com/chiayu0816/codelife-chronicles-archive)（tag：`archive/codelife-chronicles-2025`）。
-
 ---
 
 ## 內容概要
