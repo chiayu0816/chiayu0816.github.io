@@ -121,12 +121,13 @@ body.show-personal .personal-toggle{border-color:rgba(84,221,155,.5);color:var(-
   opacity:0;pointer-events:none;transition:opacity .22s;
 }
 body.nav-open .nav-backdrop{opacity:1;pointer-events:auto}
+body.nav-open .topbar{z-index:75}
 body.nav-open{overflow:hidden}
 
 /* Layout */
 .layout{
   max-width:var(--maxw);margin:0 auto;display:grid;grid-template-columns:248px 1fr;gap:34px;
-  padding:26px 22px 90px;position:relative;z-index:1;
+  padding:26px 22px 90px;position:relative;
 }
 .sidebar{
   position:fixed;z-index:40;
