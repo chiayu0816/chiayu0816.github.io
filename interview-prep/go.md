@@ -2,7 +2,7 @@
 
 > 來源：go-questions（GMP/GC/channel/map/slice/interface/context/compile）、interview-go（question/base）、go-interview-practice
 > 題數：38 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景
 
 ---
 

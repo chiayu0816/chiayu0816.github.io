@@ -6,8 +6,9 @@ All notable changes to the public study site and question bank.
 
 ### Changed
 
-- Split interview answers into public **實務場景** (`scenario` in topics) and **個人實戰對照** (`scripts/resume_overlay.py`).
-- Study site: top-bar toggle for personal notes (local build `INCLUDE_PERSONAL=1`; GitHub Pages omits personal data).
+- Moved resumes, career Cursor skills, and personal interview overlay to private repo [chiayu0816/resume](https://github.com/chiayu0816/resume).
+- Public repo keeps only technical Q&A and `scenario`; personal notes load via `RESUME_OVERLAY_PATH` when building locally from the private repo.
+- Split interview answers into public **實務場景** (`scenario` in topics) vs **個人實戰對照** (private overlay).
 - Replaced personal blog at `chiayu0816.github.io` with the Senior Backend interview prep study site.
 - Renamed repository from `interview` to `chiayu0816.github.io`.
 - Set repository visibility to **public** (required for GitHub Free Pages).

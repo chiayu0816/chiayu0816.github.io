@@ -26,7 +26,6 @@
    - `followups`：`[(追問, 答), ...]`
    - `pitfalls`：常見陷阱（字串列表）
    - `scenario`：**可選**；通用實務場景，請勿寫入可識別個資
-   - 個人化對照請寫入 `scripts/resume_overlay.py`（`PERSONAL_OVERLAY`），勿放進公開題庫正文
 
 3. 在 `generate_comprehensive.py` 加入 `import` 與 `write_file(...)`。
 4. 在 `build_site.py` 的 `TECHS` 列表註冊新技術（含 priority 2 或 3）。
@@ -40,13 +39,13 @@
    ```
 
 6. 更新 `interview-prep/README.md` 題數表；若有重大變更，更新根目錄 `CHANGELOG.md`。
-7. 開 PR，說明新增/修改範圍與來源（官方文件、書籍、面試回饋等）。
+7. 開 PR，說明新增/修改範圍與來源。
 
 ---
 
 ## PR 檢查清單
 
-- [ ] 五段式欄位齊全（`scenario` 可省略；個人對照僅在 overlay）
+- [ ] 五段式欄位齊全（`scenario` 可省略）
 - [ ] 繁體中文（台灣用語）；若用簡體撰寫，請跑過 `generate_comprehensive.py` 的 OpenCC 正規化
 - [ ] 不與其他技術檔重複同一概念
 - [ ] 答案達 Senior 深度（原理與追問），非死記定義
@@ -57,7 +56,7 @@
 
 ## 行為準則
 
-請遵守 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)：尊重、就事論事、歡迎新手提問。
+請遵守 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
 
 ---
 

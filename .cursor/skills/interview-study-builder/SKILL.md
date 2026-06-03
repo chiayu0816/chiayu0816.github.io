@@ -1,11 +1,11 @@
 ---
 name: interview-study-builder
-description: Build senior-level backend interview study notes (繁體中文, 5-section Q&A) and a polished offline study site for Roy Lee's resume project. Use when the user wants to add a new technology's interview knowledge, mentions "interview notes", "面試筆記", "新增技術知識", "面試題庫", "study site", "interview prep", or wants to reproduce the structured Q&A + study-console workflow under interview-prep/.
+description: Build senior-level backend interview study notes (繁體中文, 5-section Q&A) and a polished offline study site for the public chiayu0816.github.io question bank. Use when the user wants to add a new technology's interview knowledge, mentions "interview notes", "面試筆記", "新增技術知識", "面試題庫", "study site", "interview prep", or wants to reproduce the structured Q&A + study-console workflow under interview-prep/.
 ---
 
 # Interview Study Builder
 
-Reproducible workflow for Roy Lee's backend interview prep. Adding a new technology means: research → author a `topics_<tech>.py` module in the 5-section schema → register it → run the generator (with 繁→繁 normalization) → rebuild the static study site. The design system is fixed so new content looks identical to existing content.
+Reproducible workflow for the public backend interview prep repo. Adding a new technology means: research → author a `topics_<tech>.py` module in the 5-section schema → register it → run the generator (with 繁→繁 normalization) → rebuild the static study site. The design system is fixed so new content looks identical to existing content.
 
 **Project root:** `interview-prep/` · **Scripts:** `interview-prep/scripts/` · **Site:** `interview-prep/site/`
 
@@ -42,7 +42,8 @@ For libraries/frameworks not covered, use the **user-context7** MCP for current 
 **Selection rules (keep it senior-level, non-redundant):**
 - Prioritize high-frequency, senior-depth questions that survive interviewer follow-ups — not trivia.
 - Every answer must reach the WHY/底層原理 level, not just the WHAT.
-- Tie at least the high-value topics back to Roy's real experience (see `interview-prep/README.md` 履歷亮點: crypto exchange matching/market-data/liquidity/hedging, sports data Betradar/Kafka/LMAX Disruptor, K-line pprof tuning, Spring Boot refactor, Docker/AWS).
+- Use `scenario` for anonymous, reusable practice context (exchange, market data, high-throughput pipelines)—no personal identifiers in this public repo.
+- Personal interview notes live in the private `chiayu0816/resume` repo (`interview-overlay/resume_overlay.py`), not here.
 - Deduplicate against existing `.md` files — don't repeat a concept already covered under another tech.
 - Frontend is explicitly excluded (Vue/Pinia/Vite/Naive UI).
 
@@ -56,7 +57,7 @@ Each topic is a Python dict. Output is **繁體中文 (台灣用語)**. The five
 | 深入原理 | `dive` | 實作/底層 WHY，bullet list | cyan `#56c2ff` |
 | 考官可能追問 | `followups` | `(問, 答)` tuples, anticipate follow-ups | purple `#c79cff` |
 | 常見陷阱 / 易錯點 | `pitfalls` | bullet list of mistakes | red `#ff6b6b` |
-| 結合履歷 | `resume` | Roy's relevant experience (optional) | green `#54dd9b` |
+| 實務場景 | `scenario` | Generic practice context (optional) | green `#7ec8a4` |
 
 Target: **a candidate can survive a 45–60 min senior backend interview (with follow-ups) using only these notes.**
 
@@ -69,7 +70,7 @@ Topic dict shape (see [topic-module-template.py](topic-module-template.py) for a
     "dive": ["原理 bullet 1", "原理 bullet 2"],
     "followups": [("追問問題", "簡答"), ("追問 2", "答 2")],
     "pitfalls": ["易錯點 1", "易錯點 2"],
-    "resume": "Roy 相關經驗（可省略此 key）。",
+    "scenario": "通用實務場景（可省略此 key）。",
 }
 ```
 
@@ -133,7 +134,7 @@ Add a row to the 技術分類索引 table in `interview-prep/README.md` (priorit
 ## Quality gate
 
 - All output is 繁體中文 (台灣用語), normalized — no stray 简体 or over-converted terms.
-- Every topic has `core` + `dive` + `followups` + `pitfalls`; high-value topics also have `resume`.
+- Every topic has `core` + `dive` + `followups` + `pitfalls`; optional `scenario` must stay anonymous (no PII).
 - Answers reach senior depth (原理/WHY), survive follow-ups, and don't duplicate other techs.
 - Generator + site build run clean; `site/index.html` opens offline and the new tech appears in the sidebar with the right priority dot and count.
 - The design system is unchanged — new content is visually consistent with existing content.

@@ -1,17 +1,17 @@
 # 後端面試準備 · Senior Backend Interview Prep
 
-繁體中文 Senior Go / Java 後端面試題庫（五段式 Q&A），含交易所與體育數據實戰脈絡。
+繁體中文 Senior Go / Java 後端面試題庫（五段式 Q&A），開源共筆、持續更新。
 
 **線上學習站：** [https://chiayu0816.github.io/](https://chiayu0816.github.io/)
 
-> **站點說明：** 本網址已改為面試準備題庫。舊「CodeLife Chronicles」程式學習筆記已封存於 [codelife-chronicles-archive](https://github.com/chiayu0816/codelife-chronicles-archive)（tag：`archive/codelife-chronicles-2025`）。
+> **站點說明：** 本網址已改為面試準備題庫。舊「CodeLife Chronicles」程式筆記已封存於 [codelife-chronicles-archive](https://github.com/chiayu0816/codelife-chronicles-archive)（tag：`archive/codelife-chronicles-2025`）。
 
 ---
 
 ## 內容概要
 
 - **223+ 題**，涵蓋 Go、Redis、MySQL、Kafka、RocketMQ、System Design、pprof 等
-- 每題：**核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 實務場景**（個人對照可選，預設隱藏）
+- 每題：**核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 實務場景**（可選）
 - 詳細索引與讀書順序見 [interview-prep/README.md](interview-prep/README.md)
 
 ---
@@ -22,11 +22,9 @@
 pip install -r requirements.txt
 cd interview-prep
 python3 scripts/generate_comprehensive.py   # 可選：從 topics_*.py 重產 .md
-INCLUDE_PERSONAL=1 python3 scripts/build_site.py   # 含個人對照；公開站 CI 為 0
+python3 scripts/build_site.py
 open site/index.html
 ```
-
-學習站頂欄可開啟 **「個人對照」**，顯示 `resume_overlay.py` 中的個人化筆記（僅本機完整 build 時有資料）。
 
 ---
 
@@ -50,7 +48,11 @@ open site/index.html
 
 ## 倉庫可見性
 
-本倉庫為 **public**（GitHub Free 方案需公開倉庫才能使用 Pages）。對外網站只部署 `interview-prep/site/`，不會把根目錄的履歷 `.docx` 當靜態檔提供下載；若介意履歷出現在 Git 歷史，可改放私人 fork。
+本倉庫為 **public**（GitHub Free 需公開倉庫才能使用 Pages）。對外只部署 `interview-prep/site/` 靜態學習站。
+
+履歷與個人化面試筆記不在此倉庫；請使用你的 **private** `chiayu0816/resume` 倉庫（若尚未建立，見該 repo 的 README）。
+
+---
 
 ## 授權
 

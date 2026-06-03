@@ -18,12 +18,11 @@ Regenerate:  python3 scripts/build_site.py
 from __future__ import annotations
 
 import html
+import importlib.util
 import json
 import os
 import re
 from pathlib import Path
-
-from resume_overlay import PERSONAL_OVERLAY
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -55,7 +54,26 @@ SECTION_MARKERS = [
     ("**結合履歷：**", "resume_legacy"),
 ]
 
-INCLUDE_PERSONAL = os.environ.get("INCLUDE_PERSONAL", "1") == "1"
+INCLUDE_PERSONAL = os.environ.get("INCLUDE_PERSONAL", "0") == "1"
+
+
+def load_personal_overlay() -> dict[str, str]:
+    """Load PERSONAL_OVERLAY from private repo via RESUME_OVERLAY_PATH."""
+    if not INCLUDE_PERSONAL:
+        return {}
+    path = os.environ.get("RESUME_OVERLAY_PATH", "").strip()
+    if not path:
+        return {}
+    overlay_path = Path(path).expanduser().resolve()
+    if not overlay_path.is_file():
+        return {}
+    spec = importlib.util.spec_from_file_location("resume_overlay_private", overlay_path)
+    if spec is None or spec.loader is None:
+        return {}
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    data = getattr(mod, "PERSONAL_OVERLAY", {})
+    return data if isinstance(data, dict) else {}
 
 FENCE_RE = re.compile(r"```(\w*)\n(.*?)```", re.S)
 SVG_FENCE_RE = re.compile(r"```svg\n(.*?)```", re.S)
@@ -203,6 +221,7 @@ def parse_file(path: Path) -> list[dict]:
 
 
 def build_data() -> dict:
+    overlay = load_personal_overlay()
     techs = []
     total = 0
     personal_count = 0
@@ -212,7 +231,7 @@ def build_data() -> dict:
             tid = f"{key}-{idx}"
             topic["id"] = tid
             if INCLUDE_PERSONAL:
-                topic["personal"] = PERSONAL_OVERLAY.get(tid, "")
+                topic["personal"] = overlay.get(tid, "")
             else:
                 topic["personal"] = ""
             if topic["personal"]:

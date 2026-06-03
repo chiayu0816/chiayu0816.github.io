@@ -12,7 +12,7 @@ Each topic dict:
   dive      (list)  required — 深入原理 bullets
   followups (list)  required — [(問, 答), ...] 考官可能追問
   pitfalls  (list)  required — 常見陷阱 / 易錯點 bullets
-  resume    (str)   optional — 結合履歷（high-value topics only）
+  scenario  (str)   optional — 通用實務場景（勿寫可識別個資）
 """
 
 TECH_TOPICS = [
@@ -31,7 +31,7 @@ TECH_TOPICS = [
             "常見誤解或易錯點 1",
             "常見誤解或易錯點 2",
         ],
-        "resume": "Roy 在某專案的相關實務（撮合/行情/K線/Disruptor 等），可省略整個 key。",
+        "scenario": "例如在高併發服務中如何取捨延遲與一致性（可省略整個 key）。",
     },
     # ... more topics; aim for high-frequency, senior-level, non-redundant questions.
 ]

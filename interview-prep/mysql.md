@@ -2,7 +2,7 @@
 
 > 來源：interview-go（mysql/）、tech-vault
 > 題數：21 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景
 
 ---
 
