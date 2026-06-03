@@ -46,6 +46,10 @@ open site/index.html
 
 ---
 
+## 倉庫可見性
+
+本倉庫為 **public**（GitHub Free 方案需公開倉庫才能使用 Pages）。對外網站只部署 `interview-prep/site/`，不會把根目錄的履歷 `.docx` 當靜態檔提供下載；若介意履歷出現在 Git 歷史，可改放私人 fork。
+
 ## 授權
 
 - 本倉庫腳本：MIT（見 [LICENSE](LICENSE)）

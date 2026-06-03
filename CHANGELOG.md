@@ -8,6 +8,7 @@ All notable changes to the public study site and question bank.
 
 - Replaced personal blog at `chiayu0816.github.io` with the Senior Backend interview prep study site.
 - Renamed repository from `interview` to `chiayu0816.github.io`.
+- Set repository visibility to **public** (required for GitHub Free Pages).
 - Added GitHub Actions deployment (build `interview-prep/site` → GitHub Pages).
 
 ### Archived
