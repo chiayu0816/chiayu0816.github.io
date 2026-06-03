@@ -34,8 +34,6 @@ open site/index.html
 2. 執行 `generate_comprehensive.py` → `build_site.py`
 3. Push 至 `main` → [GitHub Actions](.github/workflows/deploy-pages.yml) 自動部署至 Pages
 
-更新紀錄見 [CHANGELOG.md](CHANGELOG.md)。
-
 ---
 
 ## 參與貢獻
@@ -43,18 +41,3 @@ open site/index.html
 歡迎透過 Issue / Pull Request 新增題目、勘誤或討論面試經驗。請先閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 也可使用 [GitHub Discussions](https://github.com/chiayu0816/chiayu0816.github.io/discussions) 交流。
-
----
-
-## 倉庫可見性
-
-本倉庫為 **public**（GitHub Free 需公開倉庫才能使用 Pages）。對外只部署 `interview-prep/site/` 靜態學習站。
-
-履歷與個人化面試筆記不在此倉庫；請使用你的 **private** `chiayu0816/resume` 倉庫（若尚未建立，見該 repo 的 README）。
-
----
-
-## 授權
-
-- 本倉庫腳本：MIT（見 [LICENSE](LICENSE)）
-- 題庫內容：CC BY-SA 4.0；彙整來源見 [interview-prep/README.md](interview-prep/README.md)
