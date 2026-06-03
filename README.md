@@ -14,6 +14,17 @@
 
 ---
 
+## 資料參考來源
+
+編寫與整理時曾參考或受啟發的開源資源（排名不分先後）：
+
+- [golang-design/go-questions](https://github.com/golang-design/go-questions) — [Go 程序员面试笔试宝典](https://golang.design/go-questions)
+- [lifei6671/interview-go](https://github.com/lifei6671/interview-go) — Golang 面试题搜集
+- [RezaSi/go-interview-practice](https://github.com/RezaSi/go-interview-practice)
+- [moabukar/tech-vault](https://github.com/moabukar/tech-vault)
+
+---
+
 ## 本機預覽
 
 ```bash
