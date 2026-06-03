@@ -1,8 +1,7 @@
 # 後端面試準備（Senior 深度版）
 
 > Senior Backend Engineer | Go & Java  
-> 最後更新：2026-05-29  
-> 來源：[go-questions](https://github.com/golang-design/go-questions) · [interview-go](https://github.com/lifei6671/interview-go) · [tech-vault](https://github.com/moabukar/tech-vault) · [go-interview-practice](https://github.com/RezaSi/go-interview-practice)
+> 最後更新：2026-05-29
 
 ---
 
@@ -103,6 +102,11 @@
 
 ---
 
-## 擴充題庫時的參考來源
+## 參考來源
 
-題庫正文已收錄在 `scripts/topics_*.py` 與各 `.md`，**不必**把上游 repo 放進本倉庫。若要新增題目，可自行 clone 頁首列出的開源專案到本機任意路徑查閱。
+整理題庫時參考的上游開源專案（自行 clone 即可，無需放進本倉庫）：
+
+- https://github.com/golang-design/go-questions
+- https://github.com/lifei6671/interview-go
+- https://github.com/moabukar/tech-vault
+- https://github.com/RezaSi/go-interview-practice
