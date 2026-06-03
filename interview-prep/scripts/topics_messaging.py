@@ -42,7 +42,7 @@ KAFKA_TOPICS = [
   <defs><marker id="kf" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 z" fill="#54dd9b"/></marker></defs>
 </svg>
 """.strip(),
-     "resume": "實務上用 Kafka 分发体育数据到多个下游。"},
+     "scenario": "例如用 Kafka 分发高吞吐數據管線到多个下游"},
     {"q": "Offset 提交策略？",
      "core": "Auto commit 默认 5s 可能丢或重复；手动 commit 处理完再 commit 至少一次。Exactly-once 需 transactional + idempotent producer。Seek 可重置位点。",
      "dive": ["enable.auto.commit=false", "commitSync vs commitAsync", "__consumer_offsets compact"],
@@ -73,7 +73,7 @@ KAFKA_TOPICS = [
      "dive": ["Kafka pull long poll", "RMQ push/pull 混合", "Kafka 适合大数据 pipeline"],
      "followups": [("选型？", "日志/analytics→Kafka；交易/订单→RMQ"), ("都支持事务吗？", "RMQ 半消息更业务化")],
      "pitfalls": ["用 Kafka 当 RPC", "忽视 Topic 规划"],
-     "resume": "實務經驗：交易所用 RocketMQ 承载交易/market flow；体育数据用 Kafka 高吞吐分发。"},
+     "scenario": "例如：交易/行情系統用 RocketMQ 承载交易/market flow；高吞吐數據管線用 Kafka 高吞吐分发"},
     {"q": "Producer acks 与可靠性？",
      "core": "acks=0  fire-and-forget；acks=1 leader 写成功；acks=all/-1 等 ISR 全部 ack。配合 min.insync.replicas=2 防单点。retries 可能重复需幂等。",
      "dive": ["unclean.leader.election", "replication.factor", "linger.ms batch 吞吐"],
@@ -119,7 +119,7 @@ KAFKA_TOPICS = [
      "dive": ["key=matchId 保序", "多 topic 按 sport/type", "与 LMAX Disruptor 内部分类配合"],
      "followups": [("延迟要求 sub-second？", "partition 足够+consumer 并行"), ("峰值赛事？", "auto scale consumer")],
      "pitfalls": ["单 topic 过大", "consumer 同步 HTTP 阻塞"],
-     "resume": "實務經驗：Betradar onboarding、Kafka 下游分发、LMAX Disruptor 降延迟 >1000ms。"},
+     "scenario": "例如：高吞吐數據管線 onboarding、Kafka 下游分发、高吞吐數據管線 降延迟 >延遲指標"},
 ]
 
 ROCKETMQ_TOPICS = [
@@ -128,7 +128,7 @@ ROCKETMQ_TOPICS = [
      "dive": ["Broker 与 NameServer 心跳", "Topic→Queue 映射", "Dledger 自动主从切换"],
      "followups": [("NameServer 无 ZK？", "去中心化路由"), (" vs Kafka broker？", "RMQ 多队列 per topic")],
      "pitfalls": ["NameServer 全挂需重启路由", "Broker 磁盘满"],
-     "resume": "交易所場景以 gRPC/WS 集成 RocketMQ 承载 market/trading flow。"},
+     "scenario": "交易/行情系統以 gRPC/WS 集成 RocketMQ 承载 market/trading flow"},
     {"q": "Topic、Tag、MessageQueue 关系？",
      "core": "Topic 逻辑分类；Tag 子过滤（SQL92 订阅）；MessageQueue 是实际存储分片（类似 Kafka partition）。Consumer 订阅 Topic+Tag 过滤。",
      "dive": ["一个 Topic 多 Queue 并行", "Tag hash 不影响队列选择", "Key 决定队列保序"],
@@ -149,7 +149,7 @@ ROCKETMQ_TOPICS = [
      "dive": ["Half message 对消费者不可见", "回查次数限制", "与 Kafka transaction 对比"],
      "followups": [("回查失败？", "rollback 消息"), ("场景？", "扣库存+发订单消息")],
      "pitfalls": ["本地事务已提交回查失败", "回查逻辑非幂等"],
-     "resume": "交易所場景可用事务消息保证 trading 状态与下游通知一致。"},
+     "scenario": "交易/行情系統可用事务消息保证 trading 状态与下游通知一致"},
     {"q": "RocketMQ 消费模式 Push vs Pull？",
      "core": "Push 是长轮询封装，Broker 有消息即推；Pull 消费者主动拉。Clustering 负载均衡；Broadcast 每实例全收。",
      "dive": ["Push 背压 consumeConcurrentlyMaxSpan", "Pull 适合流控", "Rebalance 类似 Kafka"],
@@ -185,7 +185,7 @@ ROCKETMQ_TOPICS = [
      "dive": ["Topic 按 domain 分", "关键路径 sync gRPC", "MQ 削峰填谷"],
      "followups": [("延迟敏感撮合？", "内存+RPC 主路径 MQ 辅助"), ("合规 audit？", "消息轨迹 MessageTrace")],
      "pitfalls": ["所有路径走 MQ", "消息无序导致状态错"],
-     "resume": "交易所場景（matching/market data/hedging）经 RocketMQ 集成解耦。"},
+     "scenario": "交易/行情系統（matching/market data/hedging）经 RocketMQ 集成解耦"},
 ]
 
 RABBITMQ_TOPICS = [
@@ -254,5 +254,5 @@ RABBITMQ_TOPICS = [
      "dive": ["Topic exchange 按 sport", "与 Redis/MySQL 配合", "legacy 系统 AMQP 集成"],
      "followups": [("为何多 MQ？", "历史+不同团队"), ("统一？", "逐步 Kafka/RMQ")],
      "pitfalls": ["双写不一致", "运维多套 MQ"],
-     "resume": "體育數據實務：multi-vendor sports data via REST/Kafka/RabbitMQ。"},
+     "scenario": "高吞吐數據管線實務：multi-vendor sports data via REST/Kafka/RabbitMQ"},
 ]

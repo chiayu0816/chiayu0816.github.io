@@ -19,8 +19,11 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import re
 from pathlib import Path
+
+from resume_overlay import PERSONAL_OVERLAY
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -48,8 +51,11 @@ SECTION_MARKERS = [
     ("**深入原理：**", "dive"),
     ("**考官可能追問：**", "followups"),
     ("**常見陷阱 / 易錯點：**", "pitfalls"),
-    ("**結合履歷：**", "resume"),
+    ("**實務場景：**", "scenario"),
+    ("**結合履歷：**", "resume_legacy"),
 ]
+
+INCLUDE_PERSONAL = os.environ.get("INCLUDE_PERSONAL", "1") == "1"
 
 FENCE_RE = re.compile(r"```(\w*)\n(.*?)```", re.S)
 SVG_FENCE_RE = re.compile(r"```svg\n(.*?)```", re.S)
@@ -170,6 +176,7 @@ def parse_topic(block: str) -> dict | None:
 
     search_src = q + " " + " ".join(raw.values())
     dive_items, dive_diagram = bullets_and_diagram(raw.get("dive", ""))
+    scenario_raw = raw.get("scenario") or raw.get("resume_legacy", "")
     return {
         "q": q,
         "core": render_rich(raw.get("core", "")),
@@ -177,7 +184,8 @@ def parse_topic(block: str) -> dict | None:
         "diagram": dive_diagram,
         "followups": parse_followups(raw.get("followups", "")),
         "pitfalls": bullets(raw.get("pitfalls", "")),
-        "resume": render_rich(raw["resume"]) if raw.get("resume") else "",
+        "scenario": render_rich(scenario_raw) if scenario_raw else "",
+        "personal": "",
         "text": plain(search_src),
     }
 
@@ -197,14 +205,35 @@ def parse_file(path: Path) -> list[dict]:
 def build_data() -> dict:
     techs = []
     total = 0
+    personal_count = 0
     for fname, key, name, short, prio in TECHS:
         topics = parse_file(ROOT / fname)
+        for idx, topic in enumerate(topics):
+            tid = f"{key}-{idx}"
+            topic["id"] = tid
+            if INCLUDE_PERSONAL:
+                topic["personal"] = PERSONAL_OVERLAY.get(tid, "")
+            else:
+                topic["personal"] = ""
+            if topic["personal"]:
+                personal_count += 1
+            topic["text"] = plain(
+                topic["q"] + " " + topic.get("core", "")
+                + " " + " ".join(topic.get("dive", []))
+                + " " + topic.get("scenario", "")
+                + (" " + topic["personal"] if INCLUDE_PERSONAL else "")
+            )
         total += len(topics)
         techs.append({
             "key": key, "name": name, "short": short,
             "prio": prio, "count": len(topics), "topics": topics,
         })
-    return {"techs": techs, "total": total}
+    return {
+        "techs": techs,
+        "total": total,
+        "hasPersonal": personal_count > 0,
+        "personalCount": personal_count,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -564,6 +593,7 @@ def build_index_html(data: dict) -> str:
     total = data["total"]
     nstars3 = sum(1 for t in data["techs"] if t["prio"] == 3)
     first_tech = data["techs"][0]["name"] if data["techs"] else "—"
+    toggle_hidden = "" if data.get("hasPersonal") else " hidden"
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -598,6 +628,10 @@ def build_index_html(data: dict) -> str:
       <span class="progress-num"><b id="p-done">0</b>/<span id="p-total">{total}</span> · <span id="p-pct">0%</span></span>
       <div class="ring" id="ring" title="整體複習進度" role="img" aria-label="整體複習進度"></div>
     </div>
+    <label class="personal-toggle" id="personal-toggle-wrap"{toggle_hidden}>
+      <input type="checkbox" id="personal-toggle" aria-label="顯示個人實戰對照">
+      <span class="pt-label">個人對照</span>
+    </label>
     <a href="https://www.linkedin.com/in/cylee-19830816/" class="topbar-linkedin" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn 個人檔案">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 114.126 0 2.063 2.063 0 01-2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
     </a>

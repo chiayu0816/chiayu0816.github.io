@@ -1,7 +1,8 @@
 (function(){
   "use strict";
-  var DATA = window.__IP_DATA__ || {techs:[],total:0};
+  var DATA = window.__IP_DATA__ || {techs:[],total:0,hasPersonal:false};
   var LS = "ipv1:";
+  var LS_PERSONAL = "ipv1:showPersonal";
   var $ = function(s,r){return (r||document).querySelector(s);};
   var ce = function(t,c){var e=document.createElement(t); if(c) e.className=c; return e;};
   var techByKey = {};
@@ -126,9 +127,15 @@
       h += sec("ask","考官可能追問",fu);
     }
     if(t.pitfalls&&t.pitfalls.length) h += sec("trap","常見陷阱 / 易錯點",list(t.pitfalls));
-    if(t.resume) h += sec("resume","結合履歷",t.resume);
+    if(t.scenario) h += sec("scenario","實務場景",t.scenario);
+    if(t.personal) h += sec("personal","個人實戰對照",t.personal);
     return h;
   }
+
+  function applyPersonalVisibility(){
+    document.body.classList.toggle("show-personal", isPersonalOn());
+  }
+  function isPersonalOn(){ return localStorage.getItem(LS_PERSONAL)==="1"; }
 
   // ---- progress ----
   function updateProgress(){
@@ -250,6 +257,19 @@
   });
 
   updateProgress();
+
+  var personalWrap = $("#personal-toggle-wrap");
+  var personalChk = $("#personal-toggle");
+  if(DATA.hasPersonal && personalWrap && personalChk){
+    personalWrap.hidden = false;
+    personalChk.checked = isPersonalOn();
+    applyPersonalVisibility();
+    personalChk.addEventListener("change",function(){
+      if(personalChk.checked) localStorage.setItem(LS_PERSONAL,"1");
+      else localStorage.removeItem(LS_PERSONAL);
+      applyPersonalVisibility();
+    });
+  }
 
   syncTopbarHeight();
   requestAnimationFrame(syncTopbarHeight);

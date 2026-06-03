@@ -2,7 +2,7 @@
 
 > 來源：tech-vault、Docker Compose / AWS 實務
 > 題數：15 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -68,8 +68,8 @@
 - compose prod 無 resource limit
 - 明文 password yml
 
-**結合履歷：**
-全棧專案：Go/Gin/GORM + Vue3 + MySQL + Docker Compose 獨立交付。
+**實務場景：**
+全端專案交付與容器化部署
 
 ---
 ### Q: 容器網路：bridge/host/overlay？
@@ -260,8 +260,8 @@ VPC CIDR；public/private subnet；IGW NAT Gateway；Security Group 有狀態防
 - 無 automated test gate
 - prod creds in Jenkinsfile
 
-**結合履歷：**
-實務：Jenkins+SVN CI/CD 減少手動釋出風險。
+**實務場景：**
+實務：Jenkins+SVN CI/CD 減少手動釋出風險
 
 ---
 ### Q: Infrastructure as Code：Terraform 概念？

@@ -2,14 +2,14 @@
 
 > 來源：tech-vault、Spring Boot 重構實務
 > 題數：16 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
 ### Q: Spring Boot 自動配置原理？
 
 **核心回答：**
-@SpringBootApplication = @Configuration + @EnableAutoConfiguration + @ComponentScan。AutoConfiguration 通過 spring.factories/org.springframework.boot.autoconfigure.AutoConfiguration.imports 條件 @ConditionalOnClass 載入 bean。
+@SpringBootApplication = @Configuration + @EnableAutoConfiguration + @ComponentScan。AutoConfiguration 透過 spring.factories/org.springframework.boot.autoconfigure.AutoConfiguration.imports 條件 @ConditionalOnClass 載入 bean。
 
 **深入原理：**
 - starter 依賴傳遞
@@ -30,7 +30,7 @@
 ### Q: Spring IoC 與 DI 原理？
 
 **核心回答：**
-控制反轉：容器管理 bean 生命週期。依賴注入：建構子（推薦）、setter、欄位。BeanFactory vs ApplicationContext（事件、AOP）。
+控制反轉：容器管理 bean 生命週期。依賴注入：構造器（推薦）、setter、欄位。BeanFactory vs ApplicationContext（事件、AOP）。
 
 **深入原理：**
 - singleton/prototype scope
@@ -39,7 +39,7 @@
 
 **考官可能追問：**
 - Q: 迴圈依賴？
-  - A: setter 可；建構子不行
+  - A: setter 可；構造器不行
 - Q: @Autowired 失敗？
   - A: required=false
 
@@ -110,8 +110,8 @@ REQUIRED 預設加入；REQUIRES_NEW 新事務；NESTED savepoint。失效：非
 - 業務邏輯留 JSP
 - 無整合測試
 
-**結合履歷：**
-實務（Tech Lead）：Struts→Spring Boot ECM/SCM 重構。
+**實務場景：**
+實務：Struts→Spring Boot ECM/SCM 重構
 
 ---
 ### Q: JVM 記憶體結構與 GC 概述？
@@ -322,8 +322,8 @@ Nacos/Eureka 發現；Gateway 路由；OpenFeign 客戶端；Sentinel/Hystrix �
 **常見陷阱 / 易錯點：**
 - 只講舊專案無深度
 
-**結合履歷：**
-實務：Spring Boot 重構、Java/Go 混合棧、Oracle/MySQL。
+**實務場景：**
+實務：Spring Boot 重構、Java/Go 混合棧、Oracle/MySQL
 
 ---
 ### Q: JVM 類載入機制與雙親委派模型？
@@ -347,7 +347,7 @@ Nacos/Eureka 發現；Gateway 路由；OpenFeign 客戶端；Sentinel/Hystrix �
 - 在 webapp 放 JDBC driver 與容器衝突
 - 只覆寫 findClass 以為能改委派（應覆寫 loadClass）
 
-**結合履歷：**
-維護 Java 服務時常遇 legacy 與容器類載入隔離問題，理解委派模型有助排查 ClassLoader 衝突。
+**實務場景：**
+維護 Java 服務時常遇 legacy 與容器類載入隔離問題，理解委派模型有助排查 ClassLoader 衝突
 
 ---

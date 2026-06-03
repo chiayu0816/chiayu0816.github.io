@@ -2,7 +2,7 @@
 
 > 來源：interview-go（redis/base）、go-questions、tech-vault
 > 題數：20 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -57,8 +57,8 @@ String(SDS)、List(quicklist=ziplist+linkedlist)、Hash(ziplist/hashtable)、Set
 - 大 ziplist 轉 hashtable 造成 latency spike
 - 誤用 KEYS * 阻塞
 
-**結合履歷：**
-實務上用 Redis ZSET 重構 K 線快取，將圖表載入從 3–5s 降至 300–500ms。
+**實務場景：**
+例如用 Redis ZSET 重構 時間序列/圖表資料快取，將圖表載入從 量化的延遲區間 降至 量化的延遲區間
 
 ---
 ### Q: SDS 與 C 字串有何不同？
@@ -122,8 +122,8 @@ always：每條命令 fsync，最安全最慢；everysec：每秒 fsync，預設
 - AOF 檔無限增長未 rewrite
 - always 在 SSD 上仍可能拖垮 IOPS
 
-**結合履歷：**
-在交易所場景評估 RPO：行情快取可重建用 RDB+短 AOF；關鍵狀態需 everysec 或混合。
+**實務場景：**
+交易/行情繫統；關鍵狀態需 everysec 或混合
 
 ---
 ### Q: Redis 主從複製流程？
@@ -209,8 +209,8 @@ maxmemory 達上限按 policy 淘汰：noeviction、allkeys-lru、volatile-lru�
 - 空值快取 TTL 過長佔滿
 - 互斥鎖未釋放死鎖
 
-**結合履歷：**
-實務上修復 Redis 快取穿透：空值快取 + 布隆過濾非法 ID。
+**實務場景：**
+例如修復 Redis 快取穿透：空值快取 + 布隆過濾非法 ID
 
 ---
 ### Q: Redis 分散式鎖如何實現？Redlock 爭議？
@@ -252,11 +252,11 @@ Hot key：單 key QPS 過高，單 slot/單 thread 瓶頸；解：local cache、
   - A: 按時間分 key
 
 **常見陷阱 / 易錯點：**
-- KEYS 找 big key 生產停用
+- KEYS 找 big key 生產禁用
 - 熱 key 本地 cache 不一致
 
-**結合履歷：**
-K 線 ZSET 按 symbol+interval 分 key，避免單 key 百萬 candle。
+**實務場景：**
+時間序列/圖表資料 ZSET 按 symbol+interval 分 key，避免單 key 百萬 candle
 
 ---
 ### Q: Redis 6 Threaded I/O 解決什麼？
@@ -300,8 +300,8 @@ Cache-Aside：讀 miss 查 DB 寫 cache；寫 DB 後刪 cache（或 delay double
 - 更新 cache 而非刪除導致併發髒讀
 - 無 TTL 兜底
 
-**結合履歷：**
-實務架構：K 線寫 MySQL SP 後刪/更新 Redis ZSET，讀以 cache 為主、DB 為 fallback。
+**實務場景：**
+實務架構：時間序列/圖表資料寫 MySQL SP 後刪/更新 Redis ZSET，讀以 cache 為主、DB 為 fallback
 
 ---
 ### Q: Pipeline 與 Transaction 差異？
@@ -422,7 +422,7 @@ SLOWLOG 記錄超過 slowlog-log-slower-than 的命令。latency doctor/latency 
 - Q: ZREVRANGE 大 range？
   - A: 限制 count
 - Q: MONITOR 生產？
-  - A: 停用，開銷極大
+  - A: 禁用，開銷極大
 
 **常見陷阱 / 易錯點：**
 - HGETALL 百萬 field
@@ -469,7 +469,7 @@ ZSET score=timestamp member=OHLC JSON 或 compact binary；按 symbol:interval �
 - 單 key 存全歷史
 - 無 trim 記憶體爆炸
 
-**結合履歷：**
-實際最佳化：MySQL SP 聚合 + Redis ZSET 分 key + index rebuild，延遲 3–5s→300–500ms。
+**實務場景：**
+例如最佳化：MySQL SP 聚合 + Redis ZSET 分 key + index rebuild，延遲 量化的延遲區間→量化的延遲區間
 
 ---

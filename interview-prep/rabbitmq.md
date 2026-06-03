@@ -2,7 +2,7 @@
 
 > 來源：tech-vault、體育資料實務
 > 題數：12 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -140,7 +140,7 @@ basicQos(prefetchCount=n) 限制 unack 訊息數，防一 consumer  hoard。Pref
 Classic 叢集後設資料共享，queue 單 node（映象已棄）。Quorum queue 基於 Raft 多副本強一致，推薦生產。
 
 **深入原理：**
-- Stream plugin 大數據
+- Stream plugin 大資料
 - Federation/Shovel 跨機房
 - Khepri 新後設資料
 
@@ -259,7 +259,7 @@ Memory alarm 阻塞 connection publish；disk free 限制。Monitor queue 長度
 - 雙寫不一致
 - 運維多套 MQ
 
-**結合履歷：**
-體育資料實務：multi-vendor sports data via REST/Kafka/RabbitMQ。
+**實務場景：**
+高吞吐資料管線實務：multi-vendor sports data via REST/Kafka/RabbitMQ
 
 ---

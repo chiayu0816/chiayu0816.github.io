@@ -2,7 +2,7 @@
 
 > 來源：interview-go、tech-vault、生產調優實務
 > 題數：15 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -26,8 +26,8 @@ CPU、Heap（alloc/inuse）、Goroutine、Mutex、Block、Trace（時間線）�
 - 只看 CPU 不看 heap
 - profile 時間太短
 
-**結合履歷：**
-生產調優實務：pprof、flame graph、logs、metrics。
+**實務場景：**
+生產調優實務：pprof、flame graph、logs、metrics
 
 ---
 ### Q: 如何讀火焰圖（Flame Graph）？
@@ -130,8 +130,8 @@ goroutine profile 看 stack 阻塞點；對比 baseline 數量；common：chan b
 - 重啟掩蓋
 - 無監控 goroutine 數
 
-**結合履歷：**
-實務：pprof 定位 HTTP 第三方 API 無 timeout 洩漏。
+**實務場景：**
+實務：pprof 定位 HTTP 第三方 API 無 timeout 洩漏
 
 ---
 ### Q: Mutex/Block profile 如何使用？
@@ -237,8 +237,8 @@ go test -bench -cpuprofile -memprofile；benchstat 對比；避免 dead code eli
 **常見陷阱 / 易錯點：**
 - 只最佳化區域性非 hot path
 
-**結合履歷：**
-K線 3-5s→300-500ms：SP+index+ZSET+pprof 驗證。
+**實務場景：**
+時間序列/圖表資料 量化的延遲區間→量化的延遲區間：SP+index+ZSET+pprof 驗證
 
 ---
 ### Q: 延遲排查：USE/RED 方法？
@@ -262,7 +262,7 @@ USE：Utilization Saturation Errors（資源）。RED：Rate Errors Duration（�
 - 無 saturation 指標
 
 ---
-### Q: 系統性能 baseline 如何建立？
+### Q: 系統效能 baseline 如何建立？
 
 **核心回答：**
 壓測場景定義（QPS/latency SLO）；採集 CPU/heap/goroutine/trace；存檔版本對比；chaos 下 profile。

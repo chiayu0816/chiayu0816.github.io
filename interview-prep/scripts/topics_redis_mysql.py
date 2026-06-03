@@ -45,7 +45,7 @@ REDIS_TOPICS = [
   <defs><marker id="sk" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#56c2ff"/></marker></defs>
 </svg>
 """.strip(),
-        "resume": "實務上用 Redis ZSET 重構 K 線快取，將圖表載入從 3–5s 降至 300–500ms。",
+        "scenario": "例如用 Redis ZSET 重構 時間序列/圖表資料快取，將圖表載入從 量化的延遲區間 降至 量化的延遲區間",
     },
     {
         "q": "SDS 與 C 字串有何不同？",
@@ -67,7 +67,7 @@ REDIS_TOPICS = [
         "dive": ["rewrite 期間增量 buf 累積", "混合持久化 RDB+AOF header 加速恢復", "auto-aof-rewrite-min-size/percentage"],
         "followups": [("線上選 everysec？", "多數場景平衡"), ("rewrite 阻塞？", "fork+寫新檔，主進程仍服務")],
         "pitfalls": ["AOF 檔無限增長未 rewrite", "always 在 SSD 上仍可能拖垮 IOPS"],
-        "resume": "在交易所場景評估 RPO：行情快取可重建用 RDB+短 AOF；關鍵狀態需 everysec 或混合。",
+        "scenario": "交易/行情系統；關鍵狀態需 everysec 或混合",
     },
     {
         "q": "Redis 主從複製流程？",
@@ -96,7 +96,7 @@ REDIS_TOPICS = [
         "dive": ["singleflight 合併回源", "Redis 集群分片降低單點", "本地 cache+Redis 二級"],
         "followups": [("布隆 false positive？", "存在可能誤判，不存在一定不存在"), ("互斥鎖用 SETNX？", "需過期+唯一 value+Lua 釋放")],
         "pitfalls": ["空值快取 TTL 過長占滿", "互斥鎖未釋放死鎖"],
-        "resume": "實務上修復 Redis 快取穿透：空值快取 + 布隆過濾非法 ID。",
+        "scenario": "例如修復 Redis 快取穿透：空值快取 + 布隆過濾非法 ID",
     },
     {
         "q": "Redis 分散式鎖如何實現？Redlock 爭議？",
@@ -111,7 +111,7 @@ REDIS_TOPICS = [
         "dive": ["Redis 6 IO threads 只加速 network", "hot key 發現：monitor、redis-cli --hotkeys", "big key：--bigkeys 掃描"],
         "followups": [("Cluster hot slot？", "reshard 或 hashtag 打散"), ("ZSET 百萬 member？", "按時間分 key")],
         "pitfalls": ["KEYS 找 big key 生產禁用", "熱 key 本地 cache 不一致"],
-        "resume": "K 線 ZSET 按 symbol+interval 分 key，避免單 key 百萬 candle。",
+        "scenario": "時間序列/圖表資料 ZSET 按 symbol+interval 分 key，避免單 key 百萬 candle",
     },
     {
         "q": "Redis 6 Threaded I/O 解決什麼？",
@@ -126,7 +126,7 @@ REDIS_TOPICS = [
         "dive": ["先刪 cache 再寫 DB 仍可能不一致", "binlog+MQ 异步刷新", "version 字段拒舊寫"],
         "followups": [("先更新 DB 還 cache？", "一般先 DB 再刪 cache"), ("双写失败？", "重试+补偿+对账")],
         "pitfalls": ["更新 cache 而非删除导致并发脏读", "无 TTL 兜底"],
-        "resume": "實務架構：K 線寫 MySQL SP 後刪/更新 Redis ZSET，讀以 cache 為主、DB 為 fallback。",
+        "scenario": "實務架構：時間序列/圖表資料寫 MySQL SP 後刪/更新 Redis ZSET，讀以 cache 為主、DB 為 fallback",
     },
     {
         "q": "Pipeline 與 Transaction 差異？",
@@ -183,7 +183,7 @@ REDIS_TOPICS = [
         "dive": ["定期 trim ZREMRANGEBYRANK", "与 MySQL SP 聚合分工", "MGET 多 symbol 并行"],
         "followups": [("毫秒 K 线？", "score 用 ms 时间戳"), ("duplicate candle？", "ZADD NX 或 version in member")],
         "pitfalls": ["单 key 存全历史", "无 trim 内存爆炸"],
-        "resume": "實際優化：MySQL SP 聚合 + Redis ZSET 分 key + index rebuild，延遲 3–5s→300–500ms。",
+        "scenario": "例如優化：MySQL SP 聚合 + Redis ZSET 分 key + index rebuild，延遲 量化的延遲區間→量化的延遲區間",
     },
 ]
 
@@ -230,7 +230,7 @@ MYSQL_TOPICS = [
   </defs>
 </svg>
 """.strip(),
-        "resume": "K 线表 rebuild index 优化 time range 查询。",
+        "scenario": "K 线表 rebuild index 优化 time range 查询",
     },
     {
         "q": "聚簇索引与二级索引？回表与覆盖索引？",
@@ -311,7 +311,7 @@ MYSQL_TOPICS = [
         "dive": ["EXPLAIN ANALYZE 实际行数", "pt-query-digest 聚合", "optimizer trace"],
         "followups": [("type ALL 一定坏？", "小表 OK"), ("filesort 优化？", "索引排序 Avoid filesort")],
         "pitfalls": ["只看 rows 不看 filtered", "上线无 explain"],
-        "resume": "實務上用 EXPLAIN + index rebuild 优化 K 线聚合 SP。",
+        "scenario": "例如用 EXPLAIN + index rebuild 优化 K 线聚合 SP",
     },
     {
         "q": "联合索引与最左前缀？",
@@ -340,7 +340,7 @@ MYSQL_TOPICS = [
         "dive": ["与 app 层职责划分", "prepared statement 类似边界", "权限与安全 SQL injection in SP"],
         "followups": [("何时不用 SP？", "复杂业务规则、频繁变更"), ("性能？", "减少 RTT 但 CPU 在 DB")],
         "pitfalls": ["SP 无索引表扫描", "逻辑散落 app+SP 难维护"],
-        "resume": "實務經驗：MySQL SP 聚合 K 线 + index rebuild，配合 Redis ZSET，延迟 3–5s→300–500ms。",
+        "scenario": "例如：MySQL SP 聚合 K 线 + index rebuild，配合 Redis ZSET，延迟 量化的延遲區間→量化的延遲區間",
     },
     {
         "q": "主从复制原理与延迟？",
@@ -403,7 +403,7 @@ MYSQL_TOPICS = [
         "dive": ["与 Redis ZSET 分工：DB 权威、cache 热窗", "SP 聚合 tick→candle", "异常 duplicate 清洗"],
         "followups": [("分表？", "按 symbol hash 或 time 分区"), ("tick 级？", "时序库或分表")],
         "pitfalls": ["无 unique 重复 candle", "range 查询无索引"],
-        "resume": "實際經驗：SP 清洗 duplicate + index rebuild + Redis ZSET 热数据。",
+        "scenario": "例如經驗：SP 清洗 duplicate + index rebuild + Redis ZSET 热数据",
     },
     {
         "q": "線上對大表加索引/改欄位如何不鎖表？（gh-ost / pt-osc）",
@@ -418,6 +418,6 @@ MYSQL_TOPICS = [
             ("8.0 INSTANT DDL 限制？", "只支援部分操作（如尾部加欄位），不能加在中間或改型別"),
         ],
         "pitfalls": ["直接對大表 ALTER 造成長時間鎖與主從延遲", "忘了監控 replica lag，切換時下游讀到不一致", "磁碟空間不足導致影子表失敗"],
-        "resume": "K 線表 rebuild index 時需考量線上變更策略，避免鎖住交易/行情讀路徑。",
+        "scenario": "時間序列/圖表資料表 rebuild index 時需考量線上變更策略，避免鎖住交易/行情讀路徑",
     },
 ]

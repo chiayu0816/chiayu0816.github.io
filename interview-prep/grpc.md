@@ -2,7 +2,7 @@
 
 > 來源：tech-vault、交易所/體育資料實務
 > 題數：12 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -26,8 +26,8 @@ gRPC 基於 HTTP/2、Protobuf 二進位制、強型別 schema（.proto）、支�
 - breaking proto change
 - 無 deadline 呼叫掛死
 
-**結合履歷：**
-交易所 market/trading flow 以 gRPC 整合。
+**實務場景：**
+交易/行情繫統 market/trading flow 以 gRPC 整合
 
 ---
 ### Q: Protobuf 編碼與版本相容？
@@ -54,7 +54,7 @@ Field number 標識欄位，wire type 決定編碼。新增 optional/repeated �
 ### Q: gRPC 四種呼叫模式？
 
 **核心回答：**
-Unary 一問一答；Server streaming 一發多收；Client streaming 多發一收；Bidirectional streaming 雙工。Streaming 適合大檔案、即時推送。
+Unary 一問一答；Server streaming 一發多收；Client streaming 多發一收；Bidirectional streaming 雙工。Streaming 適合大檔案、實時推送。
 
 **深入原理：**
 - flow control HTTP/2 window
@@ -178,8 +178,8 @@ context.WithTimeout 設 deadline；子 call 繼承；cancel 傳播終止下游�
 - 每層重新設滿 timeout
 - DB 查詢 ignore ctx
 
-**結合履歷：**
-實務上將 client disconnect 經 context 傳到下游。
+**實務場景：**
+例如將 client disconnect 經 context 傳到下游
 
 ---
 ### Q: gRPC 安全：TLS/mTLS？
@@ -235,7 +235,7 @@ gRPC streaming 服務間 RPC；WebSocket 瀏覽器/客戶端長連線推送。�
 - 兩者可並存
 
 **考官可能追問：**
-- Q: 即時 tick？
+- Q: 實時 tick？
   - A: WS 更低客戶端延遲感知
 - Q: mobile？
   - A: 都支援

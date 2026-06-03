@@ -2,7 +2,7 @@
 
 > 來源：tech-vault、交易所實務
 > 題數：12 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -26,8 +26,8 @@ NameServer 輕量路由註冊（無強一致）；Broker 存訊息 Master-Slave�
 - NameServer 全掛需重啟路由
 - Broker 磁碟滿
 
-**結合履歷：**
-交易所場景以 gRPC/WS 整合 RocketMQ 承載 market/trading flow。
+**實務場景：**
+交易/行情繫統以 gRPC/WS 整合 RocketMQ 承載 market/trading flow
 
 ---
 ### Q: Topic、Tag、MessageQueue 關係？
@@ -113,8 +113,8 @@ MessageQueueSelector 同 sharding key 進同一 Queue；Consumer 單執行緒消
 - 本地事務已提交回查失敗
 - 回查邏輯非冪等
 
-**結合履歷：**
-交易所場景可用事務訊息保證 trading 狀態與下游通知一致。
+**實務場景：**
+交易/行情繫統可用事務訊息保證 trading 狀態與下游通知一致
 
 ---
 ### Q: RocketMQ 消費模式 Push vs Pull？
@@ -162,7 +162,7 @@ Batch 發/消費、非同步 send、多 Queue、CommitLog 順序寫、ConsumeMes
 ### Q: RocketMQ 與 Kafka 選型？
 
 **核心回答：**
-RMQ：低延遲交易、Tag、延遲/事務訊息、運維國內文件多。Kafka：日誌流、大數據、超高吞吐、生態 Flink/Spark。
+RMQ：低延遲交易、Tag、延遲/事務訊息、運維國內文件多。Kafka：日誌流、大資料、超高吞吐、生態 Flink/Spark。
 
 **深入原理：**
 - RMQ 5.x gRPC proxy
@@ -246,7 +246,7 @@ Sync Master-Slave 同步 flush；Dledger 組 commit 自動選主。NameServer �
 ### Q: RocketMQ 在 crypto exchange 場景？
 
 **核心回答：**
-Market data、order events、hedging signals、notification 解耦；與 gRPC/WS 配合：MQ 非同步持久，WS 推即時。
+Market data、order events、hedging signals、notification 解耦；與 gRPC/WS 配合：MQ 非同步持久，WS 推實時。
 
 **深入原理：**
 - Topic 按 domain 分
@@ -263,7 +263,7 @@ Market data、order events、hedging signals、notification 解耦；與 gRPC/WS
 - 所有路徑走 MQ
 - 訊息無序導致狀態錯
 
-**結合履歷：**
-交易所場景（matching/market data/hedging）經 RocketMQ 整合解耦。
+**實務場景：**
+交易/行情繫統（matching/market data/hedging）經 RocketMQ 整合解耦
 
 ---

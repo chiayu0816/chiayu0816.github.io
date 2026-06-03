@@ -2,7 +2,7 @@
 
 > 來源：tech-vault、體育/客服實務
 > 題數：12 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -258,7 +258,7 @@ Embed：1-N 小、常一起讀、原子更新。Reference：N 大、獨立增長
 **常見陷阱 / 易錯點：**
 - Mongo 當主交易庫
 
-**結合履歷：**
-體育資料實務：Betgenius 資料 Mongo+MySQL；客服系統用 MongoDB 做 KPI。
+**實務場景：**
+高吞吐資料管線實務：高吞吐資料管線 資料 Mongo+MySQL；客服系統用 MongoDB 做 KPI
 
 ---

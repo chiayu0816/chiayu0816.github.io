@@ -2,7 +2,7 @@
 
 > 來源：tech-vault、行情推送實務
 > 題數：12 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -18,7 +18,7 @@ HTTP Upgrade 101 Switching Protocols，Sec-WebSocket-Key/Accept。建立後全�
 
 **考官可能追問：**
 - Q:  vs HTTP long polling？
-  - A: WS 低開銷即時
+  - A: WS 低開銷實時
 - Q: HTTPS？
   - A: WSS TLS
 
@@ -173,8 +173,8 @@ gorilla/websocket 或 nhooyr：SetReadDeadline、PingHandler、併發寫需 Mute
 - 併發 write panic
 - handler 阻塞 read loop
 
-**結合履歷：**
-交易所場景以 WebSocket 推 market data。
+**實務場景：**
+交易/行情繫統場景以 WebSocket 推 market data
 
 ---
 ### Q: Order book / 行情推送架構？

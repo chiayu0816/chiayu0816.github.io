@@ -2,7 +2,7 @@
 
 > 來源：go-questions（GMP/GC/channel/map/slice/interface/context/compile）、interview-go（question/base）、go-interview-practice
 > 題數：38 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -52,8 +52,8 @@ Go runtime 使用 M:N 排程：G（goroutine）是使用者態協程，儲存執
 - 在 init 或 runtime.LockOSThread 後長期佔用 M
 - 以為 GOMAXPROCS=1 就完全序列（sysmon 與 GC 仍可能介入）
 
-**結合履歷：**
-在加密貨幣交易所的行情與訂單處理場景中，會用大量 goroutine，理解 GMP 後可避免在熱路徑阻塞 M（長 syscall），並用 worker pool 控制 goroutine 數量。
+**實務場景：**
+在交易/行情繫統的行情與訂單處理場景中，會用大量 goroutine，理解 GMP 後可避免在熱路徑阻塞 M（長 syscall），並用 worker pool 控制 goroutine 數量
 
 ---
 ### Q: 什麼是 Work Stealing？何時觸發？
@@ -76,8 +76,8 @@ Go runtime 使用 M:N 排程：G（goroutine）是使用者態協程，儲存執
 - 以為 goroutine 會均勻分配到所有 P（實際取決於建立時的 P 與 stealing）
 - 短生命週期大量 G 仍可能造成排程開銷
 
-**結合履歷：**
-體育資料 LMAX Disruptor 並行管線與 Go goroutine pool 類似思路：本地優先、必要時再平衡。
+**實務場景：**
+高吞吐資料管線 高吞吐資料管線 並行管線與 Go goroutine pool 類似思路：本地優先、必要時再平衡
 
 ---
 ### Q: sysmon 是什麼？做了哪些事？
@@ -143,11 +143,11 @@ goroutine 是 Go runtime 排程的輕量協程，初始棧約 2KB（可擴展至
 - 無限制 go func() 導致 OOM
 - 把 goroutine 當免費無限資源
 
-**結合履歷：**
-實務上用 goroutine 處理行情推送，同時用 pprof goroutine profile 監控數量異常。
+**實務場景：**
+例如用 goroutine 處理行情推送，同時用 pprof goroutine profile 監控數量異常
 
 ---
-### Q: Go GC 使用什麼演算法？三色標記如何運作？
+### Q: Go GC 使用什麼演演算法？三色標記如何運作？
 
 **核心回答：**
 Go 1.5+ 使用**非分代、非壓縮**的並發三色標記-清除（mark-sweep）。白色=未訪問，灰色=已訪問但子未掃完，黑色=已掃完。從 roots（goroutine stack、全域變數）出發標記，最後清除白色物件。大部分 mark 與 mutator 並發執行。
@@ -194,8 +194,8 @@ Go 1.5+ 使用**非分代、非壓縮**的並發三色標記-清除（mark-sweep
 - 以為 GC 完全無 STW
 - 忽略 mark assist 導致 mutator 變慢
 
-**結合履歷：**
-K 線快取重構時用 pprof alloc_space 觀察 GC 壓力，減少高頻路徑短生命物件分配。
+**實務場景：**
+時間序列/圖表資料快取重構時用 pprof alloc_space 觀察 GC 壓力，減少高頻路徑短生命物件分配
 
 ---
 ### Q: Go GC 的 STW 階段有哪些？還嚴重嗎？
@@ -246,7 +246,7 @@ K 線快取重構時用 pprof alloc_space 觀察 GC 壓力，減少高頻路徑�
 GOGC 控制 GC 觸發閾值：新 heap 大小達 live heap 的 (100+GOGC)% 時觸發（預設 100=翻倍）。Go 1.19+ GOMEMLIMIT 設定 soft memory limit，runtime 會更積極 GC 以避免 OOM，適合容器環境。
 
 **深入原理：**
-- GOGC=off 停用 GC（僅特殊場景）
+- GOGC=off 禁用 GC（僅特殊場景）
 - GOMEMLIMIT 與 cgroup memory.limit 配合，避免被 OOM killer 殺
 - trade-off：更低 GOGC → 更頻繁 GC、更低 RSS、更高 CPU
 
@@ -351,8 +351,8 @@ select 將所有 case 的 channel 按**偽隨機順序**輪詢（pollorder），
 - receiver close
 - close 後仍有 sender 競態 panic
 
-**結合履歷：**
-在行情 fan-out 中用 context 取消 + 單一 writer close，避免多 goroutine close 競態。
+**實務場景：**
+在行情 fan-out 中用 context 取消 + 單一 writer close，避免多 goroutine close 競態
 
 ---
 ### Q: map 底層實現？hash 衝突與擴容（evacuation）？
@@ -460,8 +460,8 @@ context 在 goroutine 樹傳遞 cancellation、deadline、request-scoped values�
 - 忘記 cancel 導致 timer/goroutine 洩漏
 - 用 context 傳大量業務引數
 
-**結合履歷：**
-在 gRPC/WebSocket 服務中將 client disconnect 通過 context 傳到 DB/Redis 查詢，避免 goroutine 洩漏。
+**實務場景：**
+在 gRPC/WebSocket 服務中將 client disconnect 透過 context 傳到 DB/Redis 查詢，避免 goroutine 洩漏
 
 ---
 ### Q: sync.Mutex 和 RWMutex 原理與使用場景？
@@ -507,8 +507,8 @@ WaitGroup 計數 goroutine 完成，Add/Done/Wait，Add 必須在 Wait 前、Don
 - Pool 存帶狀態未 Reset 的物件
 - sync.Map 當通用 map 濫用
 
-**結合履歷：**
-實務上用 errgroup+context 替代裸 WaitGroup 管理子任務生命週期。
+**實務場景：**
+例如用 errgroup+context 替代裸 WaitGroup 管理子任務生命週期
 
 ---
 ### Q: Go Memory Model（happens-before）？
@@ -552,8 +552,8 @@ Go 記憶體模型定義哪些讀寫 guaranteed 可見：同一 goroutine 內順
 - 盲目 unsafe
 - 忽略 -m 診斷
 
-**結合履歷：**
-interview-go q019/q020 類題：在熱路徑避免 fmt 與不必要的 heap boxing。
+**實務場景：**
+可結合自身服務中的 goroutine、context 與 pprof 排查經驗說明取捨。
 
 ---
 ### Q: 如何排查 goroutine 洩漏？
@@ -576,8 +576,8 @@ interview-go q019/q020 類題：在熱路徑避免 fmt 與不必要的 heap boxi
 - 只重啟不查根因
 - 在洩漏路徑加更多 goroutine
 
-**結合履歷：**
-實務上曾用 pprof goroutine profile 定位 HTTP handler 未 timeout 的第三方 API 呼叫導致堆積。
+**實務場景：**
+例如曾用 pprof goroutine profile 定位 HTTP handler 未 timeout 的第三方 API 呼叫導致堆積
 
 ---
 ### Q: race detector 如何使用？原理？
@@ -597,7 +597,7 @@ go test -race / go run -race 啟用 ThreadSanitizer 插樁，檢測無同步的 
   - A: Mutex、channel、atomic，或消除共享
 
 **常見陷阱 / 易錯點：**
-- 以為 -race 通過就無併發 bug
+- 以為 -race 透過就無併發 bug
 - 只在單測跑 race 未覆蓋生產路徑
 
 ---
@@ -706,14 +706,14 @@ Go 1.18+ 引入 type parameters：[T any]、constraints（comparable、constrain
 - 只用 DefaultClient
 - Close 但不 Drain body
 
-**結合履歷：**
-實務上曾修復第三方 API 呼叫洩漏：context timeout + body drain + connection pool 調優。
+**實務場景：**
+例如曾修復第三方 API 呼叫洩漏：context timeout + body drain + connection pool 調優
 
 ---
 ### Q: CSP 模型與 Go channel 的設計哲學？
 
 **核心回答：**
-CSP（Communicating Sequential Processes）主張通過通訊共享記憶體，而非共享記憶體來通訊。Go channel 是 CSP 的實現：goroutine 通過 send/recv 同步與傳遞資料，減少顯式鎖。
+CSP（Communicating Sequential Processes）主張透過通訊共享記憶體，而非共享記憶體來通訊。Go channel 是 CSP 的實現：goroutine 透過 send/recv 同步與傳遞資料，減少顯式鎖。
 
 **深入原理：**
 - channel 同步：unbuffered send/recv rendezvous
@@ -814,8 +814,8 @@ import _ net/http/pprof 或 go tool pprof。型別：cpu、heap、goroutine、mu
 - 只看 CPU 不看 alloc
 - 最佳化非 hot path
 
-**結合履歷：**
-實務上用 pprof + flame graph 最佳化 K 線路徑與第三方 HTTP 瓶頸。
+**實務場景：**
+例如用 pprof + flame graph 最佳化 K 線路徑與第三方 HTTP 瓶頸
 
 ---
 ### Q: errgroup 與 context 組合模式？
@@ -881,8 +881,8 @@ Go 1.22 以前，for 迴圈變數在整個迴圈共用同一份位址，經典 b
 - 誤以為所有專案都已是新語義（取決於 go.mod）
 - 對迴圈變數取位址 &v 全部指向同一元素
 
-**結合履歷：**
-行情 fan-out 啟動大量 goroutine 時，注意 loopvar 捕獲，避免所有 worker 都處理同一個 symbol。
+**實務場景：**
+行情 fan-out 啟動大量 goroutine 時，注意 loopvar 捕獲，避免所有 worker 都處理同一個 symbol
 
 ---
 ### Q: 手寫一個帶限流的 worker pool（Go coding）？
@@ -922,8 +922,8 @@ func WorkerPool(jobs <-chan Job, n int) {
 - worker 內共享 slice 未加鎖造成 data race
 - panic 未 recover 拖垮整個 pool
 
-**結合履歷：**
-在交易所行情/訂單處理用 worker pool 控制 goroutine 數量，避免無限 go func() 造成 OOM。
+**實務場景：**
+交易/行情繫統，避免無限 go func() 造成 OOM
 
 ---
 ### Q: 如何合併多個 channel（fan-in / merge）？（Go coding）
@@ -964,7 +964,7 @@ func Merge(chans ...<-chan int) <-chan int {
 - 在所有 sender 結束前 close(out)
 - Go 1.22 前未傳參導致所有 goroutine 讀同一個 c
 
-**結合履歷：**
-體育資料管線把多來源事件 fan-in 後再分類處理，思路類似 Disruptor 但以 channel/goroutine 實作。
+**實務場景：**
+高吞吐資料管線管線把多來源事件 fan-in 後再分類處理，思路類似 Disruptor 但以 channel/goroutine 實作
 
 ---

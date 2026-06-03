@@ -2,7 +2,7 @@
 
 > 來源：interview-go（mysql/）、tech-vault
 > 題數：21 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -30,7 +30,7 @@ InnoDB：行鎖、MVCC、事務、崩潰恢復（redo/undo）、聚簇索引。M
 ### Q: B+ 樹索引為何適合 MySQL？
 
 **核心回答：**
-B+ 樹多路平衡，樹高低（3-4 層百萬行）、磁碟 IO 少；葉子連結串列支援 range scan；非葉子只存 key 更 fanout。相比 B 樹葉子不存資料鏈接、相比 hash 支援排序與範圍。
+B+ 樹多路平衡，樹高低（3-4 層百萬行）、磁碟 IO 少；葉子連結串列支援 range scan；非葉子只存 key 更 fanout。相比 B 樹葉子不存資料連結、相比 hash 支援排序與範圍。
 
 **深入原理：**
 - 頁預設 16KB
@@ -77,8 +77,8 @@ B+ 樹多路平衡，樹高低（3-4 層百萬行）、磁碟 IO 少；葉子連
 - 過寬 PK 增大二級索引
 - 函式索引前導列失效
 
-**結合履歷：**
-K 線表 rebuild index 最佳化 time range 查詢。
+**實務場景：**
+K 線表 rebuild index 最佳化 time range 查詢
 
 ---
 ### Q: 聚簇索引與二級索引？回表與覆蓋索引？
@@ -88,7 +88,7 @@ InnoDB 表資料按 PK 聚簇儲存；二級索引存 (index_col, PK)。查詢�
 
 **深入原理：**
 - ICP 索引下推減少回表前過濾
-- MRR 排序 PK 批量回表
+- MRR 排序 PK 批次回表
 - 聯合索引最左字首
 
 **考官可能追問：**
@@ -272,8 +272,8 @@ commit 時：1) redo prepare 2) 寫 binlog 3) redo commit。崩潰恢復時以 b
 - 只看 rows 不看 filtered
 - 上線無 explain
 
-**結合履歷：**
-實務上用 EXPLAIN + index rebuild 最佳化 K 線聚合 SP。
+**實務場景：**
+例如用 EXPLAIN + index rebuild 最佳化 K 線聚合 SP
 
 ---
 ### Q: 聯合索引與最左字首？
@@ -330,8 +330,8 @@ MySQL 5.6+ 二級索引掃描時，在儲存引擎層用索引列先過濾 WHERE
 **考官可能追問：**
 - Q: != 一定不走索引？
   - A: 看選擇性 optimizer 決定
-- Q: 字元集轉換？
-  - A: col 與常量字元集不同
+- Q: 字符集轉換？
+  - A: col 與常量字符集不同
 
 **常見陷阱 / 易錯點：**
 - SQL 改寫後未 explain
@@ -358,8 +358,8 @@ SP 在 DB 內聚合減少 network round-trip、可封裝複雜 OHLC 邏輯。缺
 - SP 無索引表掃描
 - 邏輯散落 app+SP 難維護
 
-**結合履歷：**
-實務經驗：MySQL SP 聚合 K 線 + index rebuild，配合 Redis ZSET，延遲 3–5s→300–500ms。
+**實務場景：**
+例如：MySQL SP 聚合 K 線 + index rebuild，配合 Redis ZSET，延遲 量化的延遲區間→量化的延遲區間
 
 ---
 ### Q: 主從複製原理與延遲？
@@ -508,8 +508,8 @@ HikariCP/Go sql.DB：max_open、max_idle、conn_max_lifetime。過大連線耗�
 - 無 unique 重複 candle
 - range 查詢無索引
 
-**結合履歷：**
-實際經驗：SP 清洗 duplicate + index rebuild + Redis ZSET 熱資料。
+**實務場景：**
+例如經驗：SP 清洗 duplicate + index rebuild + Redis ZSET 熱資料
 
 ---
 ### Q: 線上對大表加索引/改欄位如何不鎖表？（gh-ost / pt-osc）
@@ -533,7 +533,7 @@ MySQL 5.6+ 支援 Online DDL（ALGORITHM=INPLACE, LOCK=NONE），多數加索引
 - 忘了監控 replica lag，切換時下游讀到不一致
 - 磁碟空間不足導致影子表失敗
 
-**結合履歷：**
-K 線表 rebuild index 時需考量線上變更策略，避免鎖住交易/行情讀路徑。
+**實務場景：**
+時間序列/圖表資料表 rebuild index 時需考量線上變更策略，避免鎖住交易/行情讀路徑
 
 ---

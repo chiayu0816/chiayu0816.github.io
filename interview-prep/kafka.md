@@ -2,7 +2,7 @@
 
 > 來源：interview-go（architecture/0002）、tech-vault
 > 題數：15 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -79,8 +79,8 @@ Producer 寫入 Topic 的 Partition；Broker 存 log segment；Consumer Group �
 - Rebalance 期間 stop-the-world 消費
 - 處理慢導致 rebalance 迴圈
 
-**結合履歷：**
-實務上用 Kafka 分發體育資料到多個下游。
+**實務場景：**
+例如用 Kafka 分發高吞吐資料管線到多個下游
 
 ---
 ### Q: Offset 提交策略？
@@ -177,7 +177,7 @@ Kafka：高吞吐 log 流、生態強、延遲 ms 級。RocketMQ：金融級、T
 **深入原理：**
 - Kafka pull long poll
 - RMQ push/pull 混合
-- Kafka 適合大數據 pipeline
+- Kafka 適合大資料 pipeline
 
 **考官可能追問：**
 - Q: 選型？
@@ -189,8 +189,8 @@ Kafka：高吞吐 log 流、生態強、延遲 ms 級。RocketMQ：金融級、T
 - 用 Kafka 當 RPC
 - 忽視 Topic 規劃
 
-**結合履歷：**
-實務經驗：交易所用 RocketMQ 承載交易/market flow；體育資料用 Kafka 高吞吐分發。
+**實務場景：**
+例如：交易/行情繫統用 RocketMQ 承載交易/market flow；高吞吐資料管線用 Kafka 高吞吐分發
 
 ---
 ### Q: Producer acks 與可靠性？
@@ -362,7 +362,7 @@ Betradar 接入後作為 fan-out 匯流排：odds/live events 寫 topic，多下
 - 單 topic 過大
 - consumer 同步 HTTP 阻塞
 
-**結合履歷：**
-實務經驗：Betradar onboarding、Kafka 下游分發、LMAX Disruptor 降延遲 >1000ms。
+**實務場景：**
+例如：高吞吐資料管線 onboarding、Kafka 下游分發、高吞吐資料管線 降延遲 >延遲指標
 
 ---

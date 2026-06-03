@@ -28,6 +28,8 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Generate markdown and build site
+        env:
+          INCLUDE_PERSONAL: "0"
         run: |
           cd interview-prep
           python3 scripts/generate_comprehensive.py

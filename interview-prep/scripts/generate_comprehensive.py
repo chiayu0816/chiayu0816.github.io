@@ -44,8 +44,8 @@ def fmt(q: dict) -> str:
     lines += ["", "**常見陷阱 / 易錯點：**"]
     for p in q.get("pitfalls", []):
         lines.append(f"- {p}")
-    if q.get("resume"):
-        lines += ["", "**結合履歷：**", q["resume"]]
+    if q.get("scenario"):
+        lines += ["", "**實務場景：**", q["scenario"]]
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -57,7 +57,7 @@ def write_file(name: str, title: str, sources: str, topics: list[dict]) -> int:
 
 > 來源：{sources}
 > 題數：{len(topics)} 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 

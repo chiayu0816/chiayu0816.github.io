@@ -2,7 +2,7 @@
 
 > 來源：interview-go（architecture/）、tech-vault
 > 題數：23 道 | 深度：Senior Backend 面試級
-> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 履歷結合
+> 格式：核心回答 → 深入原理 → 追問 Q&A → 常見陷阱 → 實務場景（個人對照見 resume_overlay.py）
 
 ---
 
@@ -27,8 +27,8 @@
 - 雙寫不一致
 - 無冪等充值
 
-**結合履歷：**
-實務經驗（交易所 Go 主要負責人）：matching、market data、liquidity、hedging、K線最佳化。
+**實務場景：**
+例如（交易/行情繫統 Go 主要負責人）：matching、market data、liquidity、hedging、時間序列/圖表資料最佳化
 
 ---
 ### Q: K 線（OHLC）系統如何設計？
@@ -52,8 +52,8 @@ Tick/trade→聚合 candle（1m/5m/1h）；MySQL 權威儲存+SP 聚合；Redis 
 - 單 ZSET 全歷史
 - 無 unique constraint
 
-**結合履歷：**
-實際最佳化案例：SP+index rebuild+Redis ZSET。
+**實務場景：**
+例如最佳化案例：SP+index rebuild+Redis ZSET
 
 ---
 ### Q: 快取與資料庫一致性方案？
@@ -76,8 +76,8 @@ Cache-Aside 主流：讀 miss 載入寫 cache；寫 DB 刪 cache。強一致：�
 - 先刪 cache 後寫 DB 併發髒讀
 - 無 TTL
 
-**結合履歷：**
-architecture/0004 類場景：Redis+MySQL K線一致。
+**實務場景：**
+architecture/0004 類場景：Redis+MySQL 時間序列/圖表資料一致
 
 ---
 ### Q: 秒殺/突發流量庫存扣減如何設計？
@@ -290,7 +290,7 @@ B+Tree 讀優、原地更新（InnoDB）；LSM 寫優、append+merge（RocksDB/C
 - compaction 阻塞
 
 ---
-### Q: 體育資料即時管道設計？
+### Q: 體育資料實時管道設計？
 
 **核心回答：**
 Betradar ingest→validate→LMAX Disruptor 分類→並行 pipeline→Kafka fan-out→下游 API/Redis。延遲從 >1000ms 最佳化亞秒。
@@ -310,8 +310,8 @@ Betradar ingest→validate→LMAX Disruptor 分類→並行 pipeline→Kafka fan
 - 單執行緒 bottleneck
 - 無 schema 校驗
 
-**結合履歷：**
-體育資料實務：Betradar、LMAX Disruptor、Kafka、>1000ms→亞秒。
+**實務場景：**
+高吞吐資料管線實務：高吞吐資料管線、高吞吐資料管線、Kafka、>延遲指標→亞秒
 
 ---
 ### Q: 通知中心（Email/SMS/Telegram）設計？
@@ -464,8 +464,8 @@ Request：同步 query/command。Event：非同步 fact 廣播、解耦、最終
 - 用浮點數做價格/數量（應改用整數最小單位避免精度誤差）
 - 跨 symbol 共享狀態破壞單執行緒假設
 
-**結合履歷：**
-在交易所擔任 matching/market data 的主要 Go 負責人，撮合與行情低延遲是核心；體育資料用 LMAX Disruptor 把 >1000ms 降到亞秒，思路相通。
+**實務場景：**
+交易/行情繫統，撮合與行情低延遲是核心；高吞吐資料管線用 高吞吐資料管線 把 >延遲指標 降到亞秒，思路相通
 
 ---
 ### Q: 分散式事務如何選型？2PC / TCC / Saga / 本地訊息表？
@@ -489,8 +489,8 @@ Request：同步 query/command。Event：非同步 fact 廣播、解耦、最終
 - 補償/消費未做冪等導致重複扣款
 - 忽略空補償、懸掛、亂序問題
 
-**結合履歷：**
-交易所場景用 RocketMQ 事務訊息+冪等保證 trading 狀態與下游通知一致。
+**實務場景：**
+交易/行情繫統用 RocketMQ 事務訊息+冪等保證 trading 狀態與下游通知一致
 
 ---
 ### Q: 交易所流動性 / 對沖（hedging）系統如何設計？
@@ -515,7 +515,7 @@ Request：同步 query/command。Event：非同步 fact 廣播、解耦、最終
 - 重複對沖/重複記帳（缺冪等）
 - 外部行情斷線未降級仍按舊價成交
 
-**結合履歷：**
-在交易所負責 liquidity/hedging/market data，理解報價聚合、風險敞口與對沖執行的延遲與一致性需求。
+**實務場景：**
+交易/行情繫統，理解報價聚合、風險敞口與對沖執行的延遲與一致性需求
 
 ---

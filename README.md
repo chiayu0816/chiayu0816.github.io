@@ -11,7 +11,7 @@
 ## 內容概要
 
 - **223+ 題**，涵蓋 Go、Redis、MySQL、Kafka、RocketMQ、System Design、pprof 等
-- 每題：**核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 結合履歷**（履歷段可選）
+- 每題：**核心回答 → 深入原理 → 考官追問 → 常見陷阱 → 實務場景**（個人對照可選，預設隱藏）
 - 詳細索引與讀書順序見 [interview-prep/README.md](interview-prep/README.md)
 
 ---
@@ -22,9 +22,11 @@
 pip install -r requirements.txt
 cd interview-prep
 python3 scripts/generate_comprehensive.py   # 可選：從 topics_*.py 重產 .md
-python3 scripts/build_site.py
+INCLUDE_PERSONAL=1 python3 scripts/build_site.py   # 含個人對照；公開站 CI 為 0
 open site/index.html
 ```
+
+學習站頂欄可開啟 **「個人對照」**，顯示 `resume_overlay.py` 中的個人化筆記（僅本機完整 build 時有資料）。
 
 ---
 
