@@ -83,13 +83,13 @@ Go runtime 使用 M:N 排程：G（goroutine）是使用者態協程，儲存執
 ### Q: sysmon 是什麼？做了哪些事？
 
 **核心回答：**
-sysmon 是 runtime 啟動的**不需要 P 的後臺 M**，週期性（約 10ms+）執行：retake 長時間佔用 P 的 M、檢查 netpoll、觸發 GC、搶佔長時間執行的 G（Go 1.14+ 非同步搶佔）。它是排程器「自救」機制，防止某 G 餓死其他 G。
+sysmon 是 runtime 啟動的**不需要 P 的背景 M**，動態調整週期（從 20µs 逐步翻倍至最大 10ms）執行：retake 長時間佔用 P 的 M、檢查 netpoll、觸發 GC、搶佔長時間執行的 G（Go 1.14+ 非同步搶佔）。它是排程器「自救」機制，防止某 G 餓死其他 G。
 
 **深入原理：**
 - retake：syscall 超過 10ms 的 P 可能被標記，M 與 P 分離後 P 可被其他 M 使用
 - netpoll：將 epoll/kqueue 就緒的 fd 對應 G 放入 runq
 - forcegc：若超過 2 分鐘未 GC 且環境變數允許，可觸發
-- 搶佔：向 G 的 stack guard 注入 preempt 訊號，safe point 處切換
+- 搶佔：向 G 注入 preempt 標記（協作式）或傳送 OS 訊號（非同步），並在 safe point 處切換
 
 **考官可能追問：**
 - Q: sysmon 會增加 CPU 開銷嗎？
@@ -99,24 +99,24 @@ sysmon 是 runtime 啟動的**不需要 P 的後臺 M**，週期性（約 10ms+�
 
 **常見陷阱 / 易錯點：**
 - 以為 goroutine 一定公平（無 sysmon 搶佔時 CPU 密集 G 可餓死 others）
-- LockOSThread + 死迴圈會卡死一個 M
+- LockOSThread + 無窮迴圈會卡死一個 M
 
 ---
 ### Q: Go 1.14+ 的搶佔（preemption）如何運作？
 
 **核心回答：**
-Go 1.14 前僅在函式呼叫邊界（sync safe point）協作式讓出；1.14+ 引入**非同步搶佔**：sysmon 或 GC 向 G 棧注入 preempt 請求，signal handler 或 stack guard 觸發，在 safe point 暫停 G 重新排程。解決 tight loop 不呼叫函式時無法搶佔的問題。
+Go 1.14 前僅在函式呼叫邊界（透過 stack guard 檢查）進行協作式讓出；1.14+ 引入**非同步搶佔**：sysmon 或 GC 向執行中的 M 傳送 OS 訊號（Unix 下為 `SIGURG`），觸發執行緒的訊號處理器（signal handler）直接修改暫存器 PC，使其跳轉至 `runtime.asyncPreempt` 執行讓出，解決無函式呼叫的無窮迴圈（tight loop）無法被搶佔的問題。
 
 **深入原理：**
-- G.preempt 標誌 + stackguard0 = stackPreempt 觸發 stack growth 檢查路徑進入排程
-- 非協作式路徑：向 M 發 signal（SIGURG），在 signal stack 上修改 G 的 PC 到排程入口
-- cgo、部分 runtime 路徑仍可能延遲搶佔
+- 協作式搶佔：透過修改 `g.stackguard0 = stackPreempt`，當 G 執行到前導程式碼進行堆疊增長檢查時觸發排程
+- 非同步搶佔：向 M 傳送 `SIGURG` 訊號，在訊號處理器中修改 G 的 PC 到 `asyncPreempt` 排程入口，不依賴 stack guard
+- cgo、部分 runtime 關鍵區段路徑仍可能延遲搶佔
 
 **考官可能追問：**
 - Q: 搶佔對延遲有何影響？
   - A: 被搶佔 G 需等到 safe point，通常微秒～毫秒級；對 p99 延遲敏感服務需避免超大 critical section
 - Q: 和 Java 搶佔式執行緒排程比？
-  - A: Go 仍是 user-level scheduling，搶佔粒度在 G 而非 OS 執行緒，切換成本更低
+  - A: Go 仍是 user-level scheduling，搶佔粒度在 G 與 OS 執行緒不同，切換成本更低
 
 **常見陷阱 / 易錯點：**
 - 以為 for{} 永遠無法被搶佔（1.14+ 可以）
@@ -150,10 +150,10 @@ goroutine 是 Go runtime 排程的輕量協程，初始棧約 2KB（可擴展至
 ### Q: Go GC 使用什麼演演算法？三色標記如何運作？
 
 **核心回答：**
-Go 1.5+ 使用**非分代、非壓縮**的並發三色標記-清除（mark-sweep）。白色=未訪問，灰色=已訪問但子未掃完，黑色=已掃完。從 roots（goroutine stack、全域變數）出發標記，最後清除白色物件。大部分 mark 與 mutator 並發執行。
+Go 1.5+ 使用**非分代、非壓縮**的併發三色標記-清除（mark-sweep）。白色=未訪問，灰色=已訪問但子未掃完，黑色=已掃完。從 roots（goroutine stack、全域變數）出發標記，最後清除白色物件。大部分 mark 與 mutator 併發執行。
 
 **深入原理：**
-- write barrier（混合寫屏障）：標記階段插入屏障，確保「黑色物件不指向白色物件」或等價不變式
+- write barrier（混合寫入屏障）：標記階段插入屏障，確保「黑色物件不指向白色物件」或等價不變式
 - mark assist：分配過快的 G 需協助 mark，避免 heap 增長快於 GC
 - 無分代：每次 GC 掃描整個 heap（對小物件多、生命週期短場景可能不如分代 GC）
 
@@ -188,7 +188,7 @@ Go 1.5+ 使用**非分代、非壓縮**的並發三色標記-清除（mark-sweep
 - Q: 為什麼 Go 不用分代 GC？
   - A: 簡化 runtime、降低 STW 與 barrier 複雜度；trade-off 是短生命物件可能增加 mark 工作量
 - Q: 三色標記的漏標問題如何解決？
-  - A: 寫屏障 + STW 短暫重新掃描 roots/stack；或 SATB/deletion barrier 變體
+  - A: 使用混合寫入屏障（Hybrid Write Barrier）確保不變式。Go 1.8 起，混合寫入屏障在 GC 期間同時記錄被覆蓋的舊指標與新指向的物件，使得 GC 期間完全不需要進行 STW 堆疊重新掃描（stack re-scanning），STW 降至微秒級。
 
 **常見陷阱 / 易錯點：**
 - 以為 GC 完全無 STW
@@ -312,7 +312,7 @@ channel 底層是 runtime.hchan：含 qcount（元素數）、dataqsiz（容量�
 ### Q: select 如何實現？有多個 case ready 時怎麼選？
 
 **核心回答：**
-select 將所有 case 的 channel 按**偽隨機順序**輪詢（pollorder），避免 starvation。若多個 ready，選第一個在 pollorder 中 ready 的。無 ready 且無 default 則 G 入所有 channel 的 wait queue（single wait 最佳化只入一個）。
+select 將所有 case 的 channel 按**偽隨機順序**輪詢（pollorder），避免排程飢餓。若多個 ready，選第一個在 pollorder 中 ready 的。無 ready 且無 default 則將當前 goroutine 封裝為 sudog，並**加入所有相關 channel 的等待佇列**（等待被任一 channel 喚醒後再從其他佇列移除）。
 
 **深入原理：**
 - selectgo 編譯器展開為 runtime.selectgo 呼叫
@@ -358,12 +358,12 @@ select 將所有 case 的 channel 按**偽隨機順序**輪詢（pollorder），
 ### Q: map 底層實現？hash 衝突與擴容（evacuation）？
 
 **核心回答：**
-map 是 hmap + bucket 陣列，每 bucket 最多 8 個 key-value（overflow bucket 連結）。hash 低位選 bucket，高位用 tophash 快速過濾。load factor 超閾值觸發**增量擴容**：每次 GC 或寫入時搬運 1-2 個 old bucket 到 new buckets（翻倍），避免一次性 STW 大搬運。
+map 是 hmap + bucket 陣列，每 bucket 最多 8 個 key-value（overflow bucket 鏈結）。雜湊低位選 bucket，高位用 tophash 快速過濾。負載因子超門檻值（6.5）或 overflow bucket 過多時觸發**漸進式擴容**：在後續**寫入或刪除操作時**順便搬運 1-2 個 old bucket 到新位置，避免一次性大搬運導致延遲。注意 GC 完全不參與 map 搬遷。
 
 **深入原理：**
 - key 必須 comparable；NaN != NaN 導致 float key 特殊處理
 - 迭代順序隨機：rand 起始 bucket + 擴容期間雙表遍歷
-- delete 可能觸發 same-size 擴容整理（Go 1.12+）
+- delete 雖不會主動觸發新擴容，但若 map 處於擴容中，delete 操作也會呼叫 `growWork` 協助搬遷
 
 **考官可能追問：**
 - Q: 為什麼 map 不能併發讀寫？
@@ -379,11 +379,11 @@ map 是 hmap + bucket 陣列，每 bucket 最多 8 個 key-value（overflow buck
 ### Q: slice 和 array 區別？append 如何增長？
 
 **核心回答：**
-array 值型別、固定長度；slice 是 header（pointer、len、cap）指向底層 array。append 若 len+cap 足夠則原地寫；否則分配新 array（<256 翻倍，≥256 約 1.25 倍 + 對齊），copy 後返回新 header。傳 slice 是 header 副本，改元素可見，append 可能不影響呼叫方。
+array 值型態、固定長度；slice 是 header（pointer、len、cap）指向底層陣列。append 若 len+cap 足夠則原地寫；否則在 Go 1.18+ 中，舊容量 < 256 時翻倍；≥ 256 時採用平滑過渡公式 `newcap += (newcap + 3 * 256) / 4` 逐步收斂至 1.25 倍，最後進行記憶體對齊分配新陣列，copy 後返回新 header。傳 slice 是 header 副本，改元素可見，append 可能不影響呼叫方。
 
 **深入原理：**
 - slice[:0] 保留 cap 可 reset 重用 buffer
-- subslice 共享底層 array，修改互相可見（記憶體洩漏風險：小 slice 引用大 array）
+- subslice 共享底層陣列，修改互相可見（記憶體外洩風險：小 slice 引用大陣列）
 - copy(dst, src) 按 min(len) 複製
 
 **考官可能追問：**
@@ -394,7 +394,7 @@ array 值型別、固定長度；slice 是 header（pointer、len、cap）指向
 
 **常見陷阱 / 易錯點：**
 - append 後未接收返回值
-- subslice 記憶體洩漏
+- subslice 記憶體外洩
 - 併發讀寫同一 slice 無保護
 
 ---
@@ -489,12 +489,12 @@ Mutex 基於 CAS + semaphore（futex）實現，正常鎖 fast path 無 syscall�
 ### Q: sync.WaitGroup、Once、Pool、Map 詳解？
 
 **核心回答：**
-WaitGroup 計數 goroutine 完成，Add/Done/Wait，Add 必須在 Wait 前、Done 在 defer 中。Once 保證 func 只執行一次（初始化單例）。Pool 是 per-P 本地快取的臨時物件池，GC 時可能清空，不保證 Get 命中。sync.Map 適合讀多寫少或 key 穩定分片，內部 read+dirty 雙 map。
+WaitGroup 關聯 goroutine 同步，Add/Done/Wait，Add 必須在 Wait 前、Done 在 defer 中。Once 保證 func 只執行一次（初始化單例）。Pool 是 per-P 本地快取的臨時物件池，Go 1.13+ 引入 victim cache 機制，GC 時物件先降級至 victim 快取，避免單次 GC 造成所有物件被清空的效能抖動。sync.Map 適合讀多寫少或 key 穩定分片，內部 read+dirty 雙 map。
 
 **深入原理：**
-- WaitGroup 複製 struct 會 panic
+- 複製 WaitGroup 結構體會破壞內部狀態，雖不會立即 panic，但併發使用時會造成狀態損壞而 panic（可透過 `go vet` 靜態檢查偵測）
 - Pool New 可選，Get 未命中時呼叫
-- sync.Map LoadOrStore、Range 語義與 map 不同
+- sync.Map LoadOrStore、Range 語意與 map 不同
 
 **考官可能追問：**
 - Q: Pool 和 free list 區別？
@@ -951,7 +951,7 @@ func Merge(chans ...<-chan int) <-chan int {
 
 **深入原理：**
 - fan-out：多 worker 從同一 channel 讀；fan-in：多來源匯入一個 channel
-- 需取消時加 context，select 寫入 out 與 <-ctx.Done()
+- 需取消時加 context，select 寫入 out 與 <-ctx.Done()，防範下游提前退出導致 worker 永久阻塞與協程洩漏
 - close(out) 必須在所有 sender 結束後，否則 send on closed channel 會 panic
 
 **考官可能追問：**
@@ -963,6 +963,7 @@ func Merge(chans ...<-chan int) <-chan int {
 **常見陷阱 / 易錯點：**
 - 在所有 sender 結束前 close(out)
 - Go 1.22 前未傳參導致所有 goroutine 讀同一個 c
+- 下游停止讀取時，沒有 context 取消保護的 merge 會導致 worker 執行緒永久阻塞外洩
 
 **實務場景：**
 高吞吐資料管線管線把多來源事件 fan-in 後再分類處理，思路類似 Disruptor 但以 channel/goroutine 實作

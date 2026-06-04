@@ -9,13 +9,13 @@
 ### Q: Redis 五種基本資料結構及其底層實現？
 
 **核心回答：**
-String(SDS)、List(quicklist=ziplist+linkedlist)、Hash(ziplist/hashtable)、Set(intset/hashtable)、ZSET(ziplist/skiplist+hashtable)。Redis 依元素數量與大小在 compact 編碼與 hashtable 間自動轉換，以平衡記憶體與 O(1)/O(logN) 操作。
+String(SDS)、List(quicklist=listpack/ziplist)、Hash(listpack/hashtable)、Set(intset/hashtable)、ZSET(listpack/skiplist+hashtable)。Redis 依元素數量與大小在緊湊編碼（listpack/intset）與雜湊表（hashtable）間自動轉換，以平衡記憶體與 O(1)/O(logN) 操作。自 Redis 7.0+ 起，listpack 已完全替代 ziplist 以解決其級聯更新問題。
 
 **深入原理：**
-- SDS：O(1) 取長度、二進位制安全、預分配減少 realloc
-- skiplist：多層索引，ZSET range/score 查詢 O(logN)
-- ziplist：連續記憶體，小 hash/zset 省空間
-- encoding 轉換不可逆（大→小需主動刪重建）
+- SDS：O(1) 取得長度、二進位安全、預分配減少 realloc
+- skiplist：多層索引，ZSET range/score 查詢 O(logN)，內部為跳躍表與雜湊表雙重指標結構
+- listpack：緊湊連續記憶體，解決 ziplist 級聯更新（Cascade Update）問題，節省小物件空間
+- encoding 轉換不可逆（大→小需主動刪除重建）
 
 ```svg
 <svg viewBox="0 0 660 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="skiplist 多層索引結構，查詢平均 O(log N)">
@@ -49,12 +49,12 @@ String(SDS)、List(quicklist=ziplist+linkedlist)、Hash(ziplist/hashtable)、Set
 
 **考官可能追問：**
 - Q: K 線場景為何用 ZSET？
-  - A: score=時間戳，member=OHLC JSON；ZREVRANGEBYSCORE 取時間窗 O(logN+M)
+  - A: score=時間戳記，member=OHLC JSON；ZREVRANGEBYSCORE 取時間窗 O(logN+M)
 - Q: intset 何時用？
   - A: set 全為整數且元素少時
 
 **常見陷阱 / 易錯點：**
-- 大 ziplist 轉 hashtable 造成 latency spike
+- 大 listpack/ziplist 轉 hashtable 造成 latency spike
 - 誤用 KEYS * 阻塞
 
 **實務場景：**
@@ -64,11 +64,11 @@ String(SDS)、List(quicklist=ziplist+linkedlist)、Hash(ziplist/hashtable)、Set
 ### Q: SDS 與 C 字串有何不同？
 
 **核心回答：**
-SDS 記錄 len 與 free，O(1) 取長度；支援二進位制安全（含 \0）；預分配策略減少 realloc；buf 可含未使用空間。C 字串以 \0 結尾，strlen O(N)，不適合二進位制 blob。
+SDS 依長度選擇不同 header（sdshdr8/16/32/64 等），記錄 len 與 alloc（除 sdshdr5 外），O(1) 取得長度；支援二進位安全（可含 \0）；空間預分配與惰性釋放減少 realloc。C 字串以 \0 結尾，strlen O(N)，不適合二進位 blob。
 
 **深入原理：**
 - hdr 5/8/16/32/64 依長度選 header
-- append 時若 free 夠則原地寫
+- append 時若 free 夠則原位寫入
 - 相容部分 C 函式（以 \0 結尾部分）
 
 **考官可能追問：**
@@ -84,12 +84,12 @@ SDS 記錄 len 與 free，O(1) 取長度；支援二進位制安全（含 \0）�
 ### Q: RDB 持久化原理與優缺點？
 
 **核心回答：**
-RDB 是某時間點全量記憶體快照，fork 子程序寫 dump.rdb。COW 複製頁，寫時複製增加記憶體。恢復快、檔小，但兩次快照間資料可能丟失（分鐘級）。
+RDB 是某時間點全量記憶體快照，fork 子行程寫 dump.rdb。利用作業系統的寫時複製（COW）機制，在主行程有寫入操作時才複製記憶體分頁。還原速度快、檔案小，但兩次快照間資料可能遺失（分鐘級）。
 
 **深入原理：**
 - save/bgsave 觸發
 - fork 瞬間 latency 可能抖動
-- 子程序寫完原子 rename
+- 子行程寫完原子 rename
 
 **考官可能追問：**
 - Q: fork 失敗？
@@ -105,21 +105,21 @@ RDB 是某時間點全量記憶體快照，fork 子程序寫 dump.rdb。COW 複�
 ### Q: AOF 三種 fsync 策略？何時 rewrite？
 
 **核心回答：**
-always：每條命令 fsync，最安全最慢；everysec：每秒 fsync，預設，最多丟 1 秒；no：OS 決定，最快最危險。AOF rewrite 由子程序依當前記憶體狀態重寫命令集，壓縮體積，bgrewriteaof 觸發。
+always：每條命令 fsync，最安全最慢；everysec：每秒 fsync，預設，最多遺失 1 秒；no：OS 決定，最快最危險。AOF rewrite 由子行程依當前記憶體狀態重寫命令集，壓縮體積。Redis 7.0+ 採用 Multi-Part AOF 機制，將 AOF 拆分為 base、incremental 與 manifest 檔案，重寫時增量寫入新 incremental 檔案，完成後原子替換，避免舊版 rewrite 期間複雜的緩衝區累積。
 
 **深入原理：**
-- rewrite 期間增量 buf 累積
-- 混合持久化 RDB+AOF header 加速恢復
+- Multi-Part AOF 機制（Redis 7.0+）
+- 混合持久化 RDB+AOF header 加速還原
 - auto-aof-rewrite-min-size/percentage
 
 **考官可能追問：**
 - Q: 線上選 everysec？
   - A: 多數場景平衡
 - Q: rewrite 阻塞？
-  - A: fork+寫新檔，主程序仍服務
+  - A: fork+寫新檔，主行程仍服務
 
 **常見陷阱 / 易錯點：**
-- AOF 檔無限增長未 rewrite
+- AOF 檔案無限增長未 rewrite
 - always 在 SSD 上仍可能拖垮 IOPS
 
 **實務場景：**
@@ -129,28 +129,28 @@ always：每條命令 fsync，最安全最慢；everysec：每秒 fsync，預設
 ### Q: Redis 主從複製流程？
 
 **核心回答：**
-replica 發 PSYNC；全量：master bgsave RDB 傳 replica 載入；增量：複製緩衝區 propagation 後續命令。斷線重連 partial resync 若 offset 仍在 backlog。
+從節點 (Replica) 傳送 PSYNC；全量：主節點 (Master) bgsave RDB 傳給從節點載入；增量：透過複製積壓緩衝區（repl_backlog）傳播後續命令。斷線重連 partial resync 若 offset 仍在 backlog 中。
 
 **深入原理：**
-- repl_backlog 環形緩衝
-- replica 預設 read-only
-- 複製非同步，master 不等待 replica ack（除非 WAIT）
+- repl_backlog 環形緩衝區
+- replica 預設唯讀 (read-only)
+- 非同步複製，master 不等待 replica ack（除非使用 WAIT 命令）
 
 **考官可能追問：**
 - Q: 複製延遲？
-  - A: network+replica 寫入速度
+  - A: 網路延遲 + replica 寫入速度
 - Q: 腦裂？
-  - A: 需 Sentinel/Cluster 自動 failover
+  - A: 需 Sentinel/Cluster 自動容錯移轉 (Failover)
 
 **常見陷阱 / 易錯點：**
-- 以為 replica 寫入會回 master
-- backlog 太小導致頻繁全量
+- 以為 replica 寫入會回傳 master
+- backlog 太小導致頻繁全量複製
 
 ---
 ### Q: Sentinel 與 Cluster 架構差異？
 
 **核心回答：**
-Sentinel：監控 master/replica，自動 failover，client 問 Sentinel 取 master 位址；單 shard。Cluster：16384 slots 分片，多 master，節點間 gossip，MOVED/ASK 重定向，水平擴展。
+Sentinel：監控 master/replica，自動容錯移轉，使用者端向 Sentinel 查詢 master 位址；單分片 (shard)。Cluster：16384 slots 分片，多 master，節點間 Gossip 協定，MOVED/ASK 重新導向，水平擴充。
 
 **深入原理：**
 - Cluster slot 遷移時 ASKING
@@ -159,13 +159,13 @@ Sentinel：監控 master/replica，自動 failover，client 問 Sentinel 取 mas
 
 **考官可能追問：**
 - Q: 跨 slot 多 key？
-  - A: MGET 需 same slot；hash tag {user}:1
+  - A: MGET 需在相同 slot；hash tag {user}:1
 - Q: Sentinel 腦裂？
   - A: quorum+min-replicas
 
 **常見陷阱 / 易錯點：**
 - Cluster 大 key 遷移阻塞
-- 客戶端未支援 Cluster 協議
+- 使用者端未支援 Cluster 協定
 
 ---
 ### Q: 記憶體淘汰策略 LRU/LFU/TTL？
@@ -174,9 +174,9 @@ Sentinel：監控 master/replica，自動 failover，client 問 Sentinel 取 mas
 maxmemory 達上限按 policy 淘汰：noeviction、allkeys-lru、volatile-lru、allkeys-lfu（4.0+）、volatile-ttl 等。近似 LRU 用取樣池，非精確 LRU。LFU 適合 hot key 穩定場景。
 
 **深入原理：**
-- lazyfree 非同步刪大 key
+- lazyfree 非同步刪除大 key
 - maxmemory-policy 與持久化互動
-- tracking 客戶端快取失效
+- tracking 使用者端快取失效
 
 **考官可能追問：**
 - Q: 快取與 DB 一致性？
@@ -192,12 +192,12 @@ maxmemory 達上限按 policy 淘汰：noeviction、allkeys-lru、volatile-lru�
 ### Q: 快取穿透、擊穿、雪崩如何解？
 
 **核心回答：**
-穿透：查不存在 key，打到 DB；解：布隆過濾、空值快取、引數校驗。擊穿：hot key 過期瞬間大量請求 DB；解：互斥鎖重建、邏輯過期、never expire+async refresh。雪崩：大量 key 同時過期；解：TTL 加 jitter、多級快取、熔斷限流。
+快取穿透：查不存在 key 打到 DB；解：布隆過濾器、空值快取、引數校驗。快取擊穿：熱點 key 過期瞬間大量請求 DB；解：互斥鎖重建、邏輯過期、永遠不過期+非同步更新。快取雪崩：大量 key 同時過期；解：TTL 加隨機擾動（Jitter）、多級快取、熔斷限流。
 
 **深入原理：**
 - singleflight 合併回源
-- Redis 叢集分片降低單點
-- 本地 cache+Redis 二級
+- Redis 叢集分片降低單點壓力
+- 本地快取 + Redis 二級快取
 
 **考官可能追問：**
 - Q: 布隆 false positive？
@@ -206,21 +206,21 @@ maxmemory 達上限按 policy 淘汰：noeviction、allkeys-lru、volatile-lru�
   - A: 需過期+唯一 value+Lua 釋放
 
 **常見陷阱 / 易錯點：**
-- 空值快取 TTL 過長佔滿
+- 空值快取 TTL 過長佔滿記憶體
 - 互斥鎖未釋放死鎖
 
 **實務場景：**
-例如修復 Redis 快取穿透：空值快取 + 布隆過濾非法 ID
+例如修復 Redis 快取穿透：空值快取 + 布隆過濾器非法 ID
 
 ---
 ### Q: Redis 分散式鎖如何實現？Redlock 爭議？
 
 **核心回答：**
-單機：SET key uuid NX PX ttl，釋放用 Lua 比對 uuid 再 DEL。Redlock：多獨立 master 過半成功；爭議在 clock skew 與 GC pause 可能雙持鎖。實務常單 Redis+ fencing token 或 etcd/ZooKeeper。
+單機：SET key uuid NX PX ttl，釋放用 Lua 比對 uuid 再 DEL。Redlock：多獨立 master 過半成功；爭議在 clock skew 與 GC pause 可能雙持鎖. 實務常單 Redis+ fencing token 或 etcd/ZooKeeper。
 
 **深入原理：**
-- 鎖續期 watchdog
-- 主從 async 複製鎖可能丟
+- 鎖續期看門狗機制 (watchdog)
+- 主從非同步複製導致鎖可能遺失
 - fencing token 寫 DB 拒舊 token
 
 **考官可能追問：**
@@ -238,10 +238,10 @@ maxmemory 達上限按 policy 淘汰：noeviction、allkeys-lru、volatile-lru�
 ### Q: Hot key 與 Big key 問題？
 
 **核心回答：**
-Hot key：單 key QPS 過高，單 slot/單 thread 瓶頸；解：local cache、拆分 key（suffix 分片）、read replica。Big key：大 hash/zset/list，刪/序列化阻塞；解：拆分、UNLINK、分批 HSCAN。
+Hot key：單 key QPS 過高，單 slot/單一執行緒瓶頸；解：本地快取 (local cache)、拆分 key（suffix 分片）、唯讀副本 (read replica)。Big key：大 hash/zset/list，刪除/序列化阻塞；解：拆分、UNLINK、分批 HSCAN。
 
 **深入原理：**
-- Redis 6 IO threads 只加速 network
+- Redis 6 IO 執行緒只加速網路 I/O
 - hot key 發現：monitor、redis-cli --hotkeys
 - big key：--bigkeys 掃描
 
@@ -253,7 +253,7 @@ Hot key：單 key QPS 過高，單 slot/單 thread 瓶頸；解：local cache、
 
 **常見陷阱 / 易錯點：**
 - KEYS 找 big key 生產禁用
-- 熱 key 本地 cache 不一致
+- 熱 key 本地快取不一致
 
 **實務場景：**
 時間序列/圖表資料 ZSET 按 symbol+interval 分 key，避免單 key 百萬 candle
@@ -262,46 +262,46 @@ Hot key：單 key QPS 過高，單 slot/單 thread 瓶頸；解：local cache、
 ### Q: Redis 6 Threaded I/O 解決什麼？
 
 **核心回答：**
-多執行緒處理 read/write/parse protocol，主執行緒仍執行命令。解決大連線數下 network CPU 瓶頸，命令執行仍單執行緒（除 modules）。io-threads 與 io-threads-do-reads 配置。
+多執行緒處理 read/write/parse protocol，主執行緒仍執行命令。解決大連線數下網路 CPU 瓶頸，命令執行仍單執行緒（除 modules）。io-threads 與 io-threads-do-reads 配置。
 
 **深入原理：**
 - 預設 1 執行緒
-- 只對 network 多執行緒
+- 只對網路多執行緒處理
 - memtier 基準可提升 QPS
 
 **考官可能追問：**
 - Q: 命令還是單執行緒？
-  - A: 是，無需改 client 鎖
+  - A: 是，無需修改使用者端鎖
 - Q: 與 Memcached 多執行緒比？
   - A: Redis 選擇保持命令原子簡單
 
 **常見陷阱 / 易錯點：**
 - 以為 IO 多執行緒=命令並行
-- io-threads 過多 context switch
+- io-threads 設定過多導致頻繁上下文切換
 
 ---
 ### Q: Redis 與 DB 一致性策略？
 
 **核心回答：**
-Cache-Aside：讀 miss 查 DB 寫 cache；寫 DB 後刪 cache（或 delay double delete）。強一致：分散式事務（Seata）、Canal 訂閱 binlog 更新 cache、寫透 write-through。最終一致最常見。
+Cache-Aside：讀取未命中 (Miss) 查詢 DB 並寫入快取；寫入 DB 後刪除快取（或延遲雙刪）。強一致：分散式交易（Seata）、Canal 訂閱 binlog 更新快取、寫透 write-through。最終一致最常見。
 
 **深入原理：**
-- 先刪 cache 再寫 DB 仍可能不一致
-- binlog+MQ 非同步重新整理
-- version 欄位拒舊寫
+- 先刪除快取再寫入 DB 仍可能不一致
+- binlog+MQ 非同步更新
+- version 欄位拒舊寫入
 
 **考官可能追問：**
-- Q: 先更新 DB 還 cache？
-  - A: 一般先 DB 再刪 cache
+- Q: 先更新 DB 還是快取？
+  - A: 一般先更新 DB 再刪除快取
 - Q: 雙寫失敗？
-  - A: 重試+補償+對賬
+  - A: 重試+補償+對帳
 
 **常見陷阱 / 易錯點：**
-- 更新 cache 而非刪除導致併發髒讀
+- 更新快取而非刪除導致並行髒讀
 - 無 TTL 兜底
 
 **實務場景：**
-實務架構：時間序列/圖表資料寫 MySQL SP 後刪/更新 Redis ZSET，讀以 cache 為主、DB 為 fallback
+實務架構：時間序列/圖表資料寫入 MySQL 預存程式後刪除/更新 Redis ZSET，讀以快取為主、DB 為備援 (fallback)
 
 ---
 ### Q: Pipeline 與 Transaction 差異？
@@ -310,8 +310,8 @@ Cache-Aside：讀 miss 查 DB 寫 cache；寫 DB 後刪 cache（或 delay double
 Pipeline：批次發命令減 RTT，無原子性保證。MULTI/EXEC：命令排隊，EXEC 原子執行，樂觀鎖 WATCH。Lua 指令碼：原子執行複雜邏輯，應控制執行時間。
 
 **深入原理：**
-- Pipeline 不需事務
-- EXEC 失敗部分已執行（Redis 7 前）
+- Pipeline 不需要交易
+- 交易不支援回滾，若 EXEC 期間某命令發生執行期錯誤，其餘命令仍會繼續執行且不回滾
 - Lua redis.call 錯誤回滾指令碼
 
 **考官可能追問：**
@@ -322,7 +322,7 @@ Pipeline：批次發命令減 RTT，無原子性保證。MULTI/EXEC：命令排�
 
 **常見陷阱 / 易錯點：**
 - Lua 指令碼過長阻塞
-- 把 Pipeline 當事務
+- 把 Pipeline 當作交易
 
 ---
 ### Q: HyperLogLog、Bitmap、GEO 應用？
@@ -342,39 +342,39 @@ HLL：近似基數 O(1) 記憶體；Bitmap：點陣圖簽到/線上使用者；G
   - A: Stream 有 ack/consumer group
 
 **常見陷阱 / 易錯點：**
-- HLL 不能取具體元素
+- HLL 不能取得具體元素
 - Bitmap 使用者 id 過大需分片
 
 ---
 ### Q: Redis 過期刪除策略？
 
 **核心回答：**
-惰性刪除：訪問時檢查過期。定期刪除：隨機抽 sample 刪除過期 key。記憶體淘汰是另一機制。TTL 精度秒級；key 不存在 vs expired 返回 nil。
+惰性刪除：存取時檢查過期。定期刪除：隨機抽樣刪除過期 key。記憶體淘汰是另一機制。TTL 支援毫秒級精度（PEXPIRE/PTTL），內部以毫秒時間戳記儲存。key 不存在與 expired 皆返回 nil。
 
 **深入原理：**
-- expire set 與 dict 分離
-- 持久化 RDB 不過期 key 可能復活（需策略）
-- AOF 過期 del 命令
+- 過期字典 (expires dict) 與鍵值字典 (dict) 分離
+- 持久化 RDB 不會載入已過期 key
+- AOF 刪除時會向 AOF 檔案追加一條 DEL 命令
 
 **考官可能追問：**
-- Q: 大量 key 同時 expire？
-  - A: 可能 CPU spike，加 jitter
+- Q: 大量 key 同時過期？
+  - A: 可能引發 CPU 抖動，過期時間加隨機擾動 (jitter)
 - Q: TTL -1/-2？
   - A: -1 無 TTL，-2 不存在
 
 **常見陷阱 / 易錯點：**
 - 依賴 expire 做精確排程
-- 過期 key 仍佔記憶體直到被刪
+- 過期 key 仍佔記憶體直到被刪除
 
 ---
 ### Q: Redis 為什麼單執行緒還這麼快？
 
 **核心回答：**
-純記憶體、高效資料結構、IO 多路複用 epoll、避免鎖競爭與上下文切換。瓶頸常在 network/memory 而非 CPU。6.0+ IO 執行緒進一步解放 network。
+純記憶體操作、高效的資料結構、I/O 多工 (epoll)、避免鎖競爭與執行緒上下文切換。瓶頸常在網路或記憶體而非 CPU。6.0+ I/O 執行緒進一步解放網路 I/O 效能。
 
 **深入原理：**
-- 單執行緒簡化原子語義
-- O(N) 命令如 KEYS 仍危險
+- 單執行緒簡化原子語意
+- O(N) 命令如 KEYS 仍極度危險
 - 持久化 fork 是額外開銷
 
 **考官可能追問：**
@@ -384,24 +384,24 @@ HLL：近似基數 O(1) 記憶體；Bitmap：點陣圖簽到/線上使用者；G
   - A: Redis 資料結構更豐富
 
 **常見陷阱 / 易錯點：**
-- 單執行緒執行慢命令拖全域
+- 單執行緒執行慢命令拖垮全域
 
 ---
 ### Q: Redis 叢集 rebalance 與 slot 遷移？
 
 **核心回答：**
-reshard 將 slot 從 A 移到 B：IMPORTING/EXPORTING 狀態，MIGRATE key，原子 slot 後設資料更新。遷移期間 ASK 重定向。
+reshard 將 slot 從 A 移到 B：IMPORTING/EXPORTING 狀態，MIGRATE key，原子 slot 中繼資料更新。遷移期間 ASK 重新導向。
 
 **深入原理：**
-- MIGRATE 可原子搬 key
+- MIGRATE 可原子搬移 key
 - 大 slot 遷移時間長
-- 客戶端需 smart routing
+- 使用者端需支援智慧路由 (smart routing)
 
 **考官可能追問：**
 - Q: 遷移阻塞？
   - A: 單 key 原子，整體漸進
 - Q: 擴縮容計劃？
-  - A: 低峰+限速
+  - A: 低峰期+限速
 
 **常見陷阱 / 易錯點：**
 - 遷移中斷需恢復
@@ -416,7 +416,7 @@ SLOWLOG 記錄超過 slowlog-log-slower-than 的命令。latency doctor/latency 
 **深入原理：**
 - CONFIG SET slowlog-log-slower-than
 - LATENCY GRAPH 分類
-- memory fragmentation
+- 記憶體碎片化 (memory fragmentation)
 
 **考官可能追問：**
 - Q: ZREVRANGE 大 range？
@@ -426,24 +426,24 @@ SLOWLOG 記錄超過 slowlog-log-slower-than 的命令。latency doctor/latency 
 
 **常見陷阱 / 易錯點：**
 - HGETALL 百萬 field
-- 生產 KEYS *
+- 生產環境 KEYS *
 
 ---
-### Q: Redis 事務能保證隔離嗎？
+### Q: Redis 交易能保證隔離嗎？
 
 **核心回答：**
-MULTI/EXEC 提供順序執行與 batch 原子性，無 rollback（命令語法錯在 QUEUE 階段發現）。無隔離級別概念；WATCH 提供 CAS 樂觀鎖。
+MULTI/EXEC 提供順序執行與批次原子性，無回滾。無隔離層級概念；WATCH 提供 CAS 樂觀鎖。
 
 **深入原理：**
 - DISCARD 取消
-- EXEC 時 watched key 變則 abort
-- 與 DB ACID 不同
+- EXEC 時 watched key 變更則整個交易 abort
+- 與資料庫 ACID 不同
 
 **考官可能追問：**
-- Q: 需要 rollback？
-  - A: 用 Lua
-- Q: 事務中間可見？
-  - A: 其他 client 看不見 QUEUE 內容
+- Q: 需要回滾？
+  - A: 使用 Lua 指令碼
+- Q: 交易中間可見？
+  - A: 其他使用者端看不見 QUEUE 內容
 
 **常見陷阱 / 易錯點：**
 - 以為 EXEC 失敗全部回滾
@@ -452,24 +452,24 @@ MULTI/EXEC 提供順序執行與 batch 原子性，無 rollback（命令語法�
 ### Q: Redis 在 K 線/OHLC 場景的資料模型？
 
 **核心回答：**
-ZSET score=timestamp member=OHLC JSON 或 compact binary；按 symbol:interval 分 key；ZREVRANGEBYSCORE 拉最近 N 根；最新價可用 String/HASH。寫入 batch ZADD pipeline。
+ZSET score=timestamp member=OHLC JSON 或緊湊二進位；按 symbol:interval 分鍵；ZREVRANGEBYSCORE 拉取最近 N 根；最新價可用 String/HASH。寫入 batch ZADD pipeline。
 
 **深入原理：**
 - 定期 trim ZREMRANGEBYRANK
-- 與 MySQL SP 聚合分工
+- 與 MySQL 預存程式 (SP) 聚合分工
 - MGET 多 symbol 並行
 
 **考官可能追問：**
 - Q: 毫秒 K 線？
-  - A: score 用 ms 時間戳
-- Q: duplicate candle？
-  - A: ZADD NX 或 version in member
+  - A: score 用毫秒時間戳記
+- Q: 重複 K 線？
+  - A: ZADD NX 或在 member 中加入版本號
 
 **常見陷阱 / 易錯點：**
-- 單 key 存全歷史
-- 無 trim 記憶體爆炸
+- 單鍵儲存全歷史
+- 無 trim 導致記憶體爆炸
 
 **實務場景：**
-例如最佳化：MySQL SP 聚合 + Redis ZSET 分 key + index rebuild，延遲 量化的延遲區間→量化的延遲區間
+例如最佳化：MySQL SP 聚合 + Redis ZSET 分鍵 + 索引重建，延遲 量化的延遲區間→量化的延遲區間
 
 ---

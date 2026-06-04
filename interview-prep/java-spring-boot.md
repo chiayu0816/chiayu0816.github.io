@@ -9,7 +9,7 @@
 ### Q: Spring Boot 自動配置原理？
 
 **核心回答：**
-@SpringBootApplication = @Configuration + @EnableAutoConfiguration + @ComponentScan。AutoConfiguration 透過 spring.factories/org.springframework.boot.autoconfigure.AutoConfiguration.imports 條件 @ConditionalOnClass 載入 bean。
+@SpringBootApplication = @Configuration + @EnableAutoConfiguration + @ComponentScan。自動配置在 Spring Boot 2.7 以前主要透過 `META-INF/spring.factories` 載入；自 Spring Boot 3.0 起已完全移除 spring.factories 支援，統一改用 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`，配合條件註解（如 `@ConditionalOnClass`）載入 Bean。
 
 **深入原理：**
 - starter 依賴傳遞
@@ -30,16 +30,16 @@
 ### Q: Spring IoC 與 DI 原理？
 
 **核心回答：**
-控制反轉：容器管理 bean 生命週期。依賴注入：構造器（推薦）、setter、欄位。BeanFactory vs ApplicationContext（事件、AOP）。
+控制反轉：容器管理 Bean 生命週期。依賴注入：建構子（推薦）、setter、欄位。BeanFactory vs ApplicationContext（事件、AOP）。
 
 **深入原理：**
 - singleton/prototype scope
-- circular dependency 三級快取
+- 三級快取（三級快取僅在單例且允許迴圈依賴時生效）
 - @PostConstruct
 
 **考官可能追問：**
 - Q: 迴圈依賴？
-  - A: setter 可；構造器不行
+  - A: Spring 透過三級快取解決單例的迴圈依賴。但自 Spring Boot 2.6+ 起預設已停用迴圈依賴，啟動時若發現迴圈依賴會直接丟擲 BeanCurrentlyInCreationException 異常並失敗。實務上應重構設計避免迴圈依賴，或透過 `spring.main.allow-circular-references=true` 暫時開啟
 - Q: @Autowired 失敗？
   - A: required=false
 
@@ -51,7 +51,7 @@
 ### Q: Spring AOP 原理與 JDK/CGLIB？
 
 **核心回答：**
-代理模式：有介面 JDK 動態代理；無介面 CGLIB 子類。切面=@Before/@Around 等+Pointcut。自呼叫不走代理。
+代理模式：在 Spring Boot 2.x/3.x 中，預設已全面採用 CGLIB 代理（`proxy-target-class=true`），以避免介面轉換時的型別轉換問題。在非 Boot 的原生 Spring 配置下，有介面預設使用 JDK 動態代理，無介面使用 CGLIB 子類代理。切面=@Before/@Around 等+Pointcut。自呼叫（自內部呼叫）不走代理。
 
 **深入原理：**
 - AspectJ weave vs Spring AOP
@@ -117,7 +117,7 @@ REQUIRED 預設加入；REQUIRES_NEW 新事務；NESTED savepoint。失效：非
 ### Q: JVM 記憶體結構與 GC 概述？
 
 **核心回答：**
-Heap（Young Old）、Metaspace、Stack、PC。GC：G1 預設（JDK9+），ZGC/Shenandoah 低延遲。Minor GC、Mixed GC、Full GC。
+Heap（Young Old）、Metaspace、Stack、PC。GC：G1 預設（JDK 9+），ZGC/Shenandoah 提供毫秒級低延遲。JDK 21 引入了分代 ZGC（Generational ZGC），大幅改善了非分代 ZGC 的吞吐量與 CPU 消耗。Minor GC、Mixed GC、Full GC。
 
 **深入原理：**
 - TLAB 分配
@@ -138,7 +138,7 @@ Heap（Young Old）、Metaspace、Stack、PC。GC：G1 預設（JDK9+），ZGC/S
 ### Q: HashMap 與 ConcurrentHashMap 原理？
 
 **核心回答：**
-HashMap JDK8 陣列+連結串列+紅黑樹；非執行緒安全。CHM segment/CAS+synchronized bucket；sizeCtl；compute 原子。
+HashMap JDK 8+ 採用陣列+鏈結串列+紅黑樹。ConcurrentHashMap 在 JDK 8+ 中完全廢棄了 Segment 分段鎖設計，改用 CAS 與 synchronized 鎖定每個桶（bucket）的首節點，鎖粒度縮小到桶級別以提高併發效能。CHM 不允許 null key/value。
 
 **深入原理：**
 - resize 執行緒協助 transfer
@@ -180,12 +180,12 @@ corePoolSize、maximumPoolSize、queue（有界！）、RejectedExecutionHandler
 ### Q: synchronized vs ReentrantLock？
 
 **核心回答：**
-synchronized JVM 最佳化（偏向鎖撤銷等）；Lock 可 interrupt、tryLock、公平、多 Condition。優先 synchronized 簡單場景。
+synchronized JVM 經歷多次最佳化，但偏向鎖自 JDK 15 廢棄並在 JDK 18 已被完全移除，鎖升級簡化為無鎖 -> 輕量級鎖 -> 重量級鎖；ReentrantLock 支援中斷、超時 tryLock、公平鎖及多 Condition。優先 synchronized 簡單場景。
 
 **深入原理：**
 - monitor enter/exit
 - AQS 佇列
-- virtual thread JDK21 pin 問題
+- 虛擬執行緒 JDK 21 Pinning 問題：在虛擬執行緒中，synchronized 會導致 Carrier Thread 被釘住，若有阻塞 I/O 會打擊高併發效能，應使用 ReentrantLock 替代之
 
 **考官可能追問：**
 - Q: 死鎖排查？
@@ -285,12 +285,12 @@ Filter chain：SecurityContextHolder←Authentication。JWT/Session；Authorizat
 ### Q: 微服務 Spring Cloud 元件？
 
 **核心回答：**
-Nacos/Eureka 發現；Gateway 路由；OpenFeign 客戶端；Sentinel/Hystrix 熔斷；Config 配置中心。
+Nacos/Eureka 服務發現；Gateway 路由；OpenFeign 使用者端；Sentinel/Resilience4j 熔斷（Hystrix 已廢棄）；Config 配置中心。
 
 **深入原理：**
 - loadbalancer @LoadBalanced
 - circuit breaker 半開
-- distributed trace sleuth
+- 微服務鏈路追蹤在 Spring Boot 3+ 中由 Spring Cloud Sleuth 遷移至 Micrometer Tracing 整合 OpenTelemetry
 
 **考官可能追問：**
 - Q: vs 單體？

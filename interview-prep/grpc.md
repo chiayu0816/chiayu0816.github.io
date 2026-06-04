@@ -72,27 +72,27 @@ Unary 一問一答；Server streaming 一發多收；Client streaming 多發一�
 - 單 message 過大
 
 ---
-### Q: gRPC 負載均衡與服務發現？
+### Q: gRPC 負載平衡與服務發現？
 
 **核心回答：**
-gRPC 跑在 HTTP/2 的**單一長連線多路複用**上，傳統 L4（連線級）負載均衡只會把整條連線導到一個 backend，所有 RPC 都壓在同一 pod → 無法均衡。因此 gRPC 多用 **client-side LB**：resolver 解析出一組位址（K8s headless service + DNS，或 xDS/Envoy 控制面），balancer（pick_first / round_robin）在 RPC 層級分流，再搭配 gRPC Health Checking Protocol 與 keepalive 剔除壞連線。
+gRPC 跑在 HTTP/2 的**單一長連線多路複用**上，傳統 L4（連線級）負載平衡只會把整條 TCP 連線導到單一後端實例，所有 RPC 都壓在同一個實例上導致流量傾斜。解決方案有二：1. **Client-side LB**：Resolver 解析位址清單（如 K8s headless service），由使用者端 Balancer 在 RPC 層分流；2. **L7 Proxy LB**：使用支援 gRPC/HTTP2 的閘道（如 Envoy、AWS ALB）在串流 (Stream) 級別分流。
 
 **深入原理：**
-- 為何 L4 LB 失效：HTTP/2 一條 TCP 連線承載多路 stream，L4 無法在 stream 層分流，會把流量釘在單一後端
-- client-side LB：name resolver（DNS/xDS）回傳位址清單，balancer 在 RPC 層輪詢，pod 增減由 resolver 更新
-- K8s 用 headless service 讓 DNS 直接回傳 pod IP 清單（而非單一 ClusterIP）；大規模用 xDS/Envoy（sidecar 或 proxyless）
-- keepalive ping 檢測 dead connection；Health Protocol 讓 balancer 避開未就緒 pod
+- 為何 L4 LB 失效：HTTP/2 一條 TCP 連線承載多個 Stream，L4 無法解析 Stream 訊框，會將所有請求綁死在同一後端
+- client-side LB：利用 Name Resolver (DNS/xDS) 回傳後端 IP 清單，使用者端負載平衡器在 RPC 層級做輪詢 (Round Robin) 或一致性雜湊 (Consistent Hashing)
+- K8s Headless Service：讓 DNS 直接回傳 Pod 的實體 IP 清單（繞過單一 ClusterIP）；大規模採用 xDS (Envoy sidecar 或 proxyless)
+- 連線維護：透過 keepalive ping 檢測死連線，Health Checking Protocol 讓 balancer 自動避開未就緒或故障的 Pod
 
 **考官可能追問：**
-- Q: K8s 用？
-  - A: headless service+DNS 或 service mesh istio/xDS
-- Q: sticky？
-  - A: consistent hash filter（xDS）
+- Q: K8s 實務？
+  - A: Headless Service + DNS 輪詢，或匯入 Istio 進行 L7 邊車代理負載平衡
+- Q: 特定路由黏性 (Sticky)？
+  - A: 藉由 xDS 設定 Consistent Hash Balancer
 
 **常見陷阱 / 易錯點：**
-- 誤用 L4 LB 導致流量壓單 pod
-- 無 health check 連 dead pod
-- DNS resolver 不感知頻繁擴縮容
+- 誤用 L4 負載平衡器導致流量全部卡在單一 Pod
+- 未啟用 Health Check 導致連向已死 Pod
+- DNS Resolver 快取時間過長，無法感知頻繁擴縮容的 Pod 變化
 
 ---
 ### Q: gRPC 攔截器（Interceptor）用途？
@@ -113,7 +113,7 @@ Unary/Stream interceptor 鏈：auth、logging、metrics、retry、tracing。類�
 
 **常見陷阱 / 易錯點：**
 - interceptor order 錯
-- metadata 明文敏感
+- metadata明文敏感
 
 ---
 ### Q: gRPC metadata 與 status codes？
@@ -140,46 +140,43 @@ Metadata 類似 HTTP headers（:authority、authorization）；Status codes 標�
 ### Q: gRPC 與 HTTP/2 關係？
 
 **核心回答：**
-gRPC 完全依賴 HTTP/2：二進位制 framing、stream multiplex、HPACK 壓縮 header、flow control。TLS 上 ALPN h2。
+gRPC 完全依賴 HTTP/2：二進位分框 (Binary Framing)、單一 TCP 連線上的多路復用 (Stream Multiplexing)、HPACK 標頭壓縮、流量控制 (Flow Control)。在 TLS 上透過 ALPN 協商 `h2`。
 
 **深入原理：**
-- single TCP 多 RPC
-- HEADERS+DATA frames
-- GOAWAY 優雅關閉
+- Length-Prefixed Message：gRPC 寫入 HTTP/2 DATA 訊框前會加上 5 位元組標頭 (1 位元組壓縮標記 + 4 位元組訊息長度)
+- Trailers 機制：gRPC 的狀態碼 (grpc-status) 與錯誤訊息 (grpc-message) 放在回應結尾的 Trailers (特殊的 HEADERS 訊框) 中傳遞
+- 連線管理：使用 GOAWAY 訊框進行優雅關閉 (Graceful Shutdown) 與連線耗損管理
 
 **考官可能追問：**
 - Q: HTTP/1.1？
-  - A: gRPC 不支援
-- Q: 瀏覽器？
-  - A: grpc-web 代理
+  - A: gRPC 原生不支援，需透過代理轉譯
+- Q: 瀏覽器端支援？
+  - A: 瀏覽器無法直接控制 HTTP/2 訊框，必須透過 grpc-web 代理伺服器轉譯
 
 **常見陷阱 / 易錯點：**
-- 中間 nginx 未開 http2
-- proxy buffer 破壞 stream
+- 中間負載平衡器 (如 Nginx) 未開啟 HTTP/2 支援
+- Proxy 啟用緩衝 (Buffer) 破壞了即時串流 (Streaming)
 
 ---
-### Q: gRPC 超時、取消與 deadline 傳播？
+### Q: gRPC 逾時、取消與 Deadline 傳播？
 
 **核心回答：**
-context.WithTimeout 設 deadline；子 call 繼承；cancel 傳播終止下游。Server 應檢查 ctx.Done()。
+使用絕對時間點 (Deadline) 代替相對時間 (Timeout)。`context.WithDeadline` 設定截止時間；子呼叫 (Sub-calls) 自動繼承並傳播剩餘時間；Cancel 會沿呼叫鏈非同步傳播終止下游執行。伺服端應定期檢查 `ctx.Done()` 以提前釋放資源。
 
 **深入原理：**
-- grpc-timeout header
-- 鏈路總 deadline 分配
-- graceful shutdown
+- `grpc-timeout` HTTP/2 標頭傳遞
+- 鏈路總 Deadline 分配與時鐘偏移風險
+- 優雅關閉與資源釋放
 
 **考官可能追問：**
-- Q: 無 deadline 危害？
-  - A: cascade hang
-- Q: Go client？
-  - A: context 必傳
+- Q: 無 Deadline 危害？
+  - A: 下游服務因等待已放棄之請求而形成「殭屍請求」，引發雪崩效應 (Cascading Hang)
+- Q: Go 使用者端？
+  - A: Context 必傳，否則無法傳播取消與截止時間
 
 **常見陷阱 / 易錯點：**
-- 每層重新設滿 timeout
-- DB 查詢 ignore ctx
-
-**實務場景：**
-例如將 client disconnect 經 context 傳到下游
+- 每層呼叫重新設定滿格 Timeout 而非繼承剩餘時間
+- 資料庫查詢或外部呼叫忽略 Context 狀態
 
 ---
 ### Q: gRPC 安全：TLS/mTLS？
@@ -206,22 +203,22 @@ Server TLS credentials；mTLS 雙向證書；JWT 在 metadata。生產禁 insecu
 ### Q: gRPC 效能最佳化？
 
 **核心回答：**
-連線複用、適當 concurrency、Protobuf 避免 huge message、streaming 減 RTT、keepalive、池化 channel。
+連線複用、控制併發串流數；針對高吞吐場景需建立 `ClientConn` 連線池以繞過單條 TCP 連線 Max Concurrent Streams 限制 (通常為 100)；避免極大 Protobuf 訊息；利用 Streaming 減少 RTT；配置合理 keepalive；開啟 CPU 壓縮權衡。
 
 **深入原理：**
-- benchmark 對比 REST JSON
-- reuse ClientConn
-- compression gzip 權衡 CPU
+- 與 REST/JSON 做吞吐量與延遲基準測試
+- 複用 ClientConn 的執行緒安全特性
+- Gzip/Snappy 壓縮演演算法對 CPU 與頻寬的影響
 
 **考官可能追問：**
-- Q: pprof gRPC？
-  - A: 看 marshal/unmarshal
-- Q: 過大 proto？
-  - A: 拆分 message
+- Q: pprof gRPC 瓶頸？
+  - A: 主要消耗於序列化 (marshal/unmarshal) 與快取複製，可改用 pool 複用 struct 物件
+- Q: 過大 proto 檔案？
+  - A: 拆分成多個細粒度 message 或改採 chunked streaming 傳輸
 
 **常見陷阱 / 易錯點：**
-- 每 RPC 新建 conn
-- 無 limit 併發壓垮
+- 每次 RPC 請求都新建連線導致效能極度劣化
+- 未限制最大併發串流數導致連線佇列排隊阻塞
 
 ---
 ### Q: gRPC vs WebSocket 選型？

@@ -58,32 +58,32 @@ GO_TOPICS = [
     },
     {
         "q": "sysmon 是什麼？做了哪些事？",
-        "core": "sysmon 是 runtime 啟動的**不需要 P 的後台 M**，週期性（約 10ms+）執行：retake 長時間佔用 P 的 M、檢查 netpoll、觸發 GC、搶占長時間運行的 G（Go 1.14+ 異步搶占）。它是調度器「自救」機制，防止某 G 餓死其他 G。",
+        "core": "sysmon 是 runtime 啟動的**不需要 P 的背景 M**，動態調整週期（從 20µs 逐步翻倍至最大 10ms）執行：retake 長時間佔用 P 的 M、檢查 netpoll、觸發 GC、搶佔長時間運行的 G（Go 1.14+ 非同步搶佔）。它是排程器「自救」機制，防止某 G 餓死其他 G。",
         "dive": [
             "retake：syscall 超過 10ms 的 P 可能被標記，M 與 P 分離後 P 可被其他 M 使用",
-            "netpoll：將 epoll/kqueue 就绪的 fd 對應 G 放入 runq",
+            "netpoll：將 epoll/kqueue 就緒的 fd 對應 G 放入 runq",
             "forcegc：若超過 2 分鐘未 GC 且環境變數允許，可觸發",
-            "搶占：向 G 的 stack guard 注入 preempt 信號，safe point 處切換",
+            "搶佔：向 G 注入 preempt 標記（協作式）或發送 OS 訊號（非同步），並在 safe point 處切換",
         ],
         "followups": [
             ("sysmon 會增加 CPU 開銷嗎？", "週期性喚醒但大部分時間 sleep；開銷通常可忽略，極端高 QPS 場景可 profile 確認"),
             ("沒有 sysmon 會怎樣？", "network fd 可能延遲喚醒、長時間 CPU 循環的 G 無法被搶占（Go 1.13 及以前）"),
         ],
-        "pitfalls": ["以為 goroutine 一定公平（無 sysmon 搶占時 CPU 密集 G 可餓死 others）", "LockOSThread + 死循環會卡死一個 M"],
+        "pitfalls": ["以為 goroutine 一定公平（無 sysmon 搶佔時 CPU 密集 G 可餓死 others）", "LockOSThread + 無窮迴圈會卡死一個 M"],
     },
     {
         "q": "Go 1.14+ 的搶占（preemption）如何運作？",
-        "core": "Go 1.14 前僅在函數調用邊界（sync safe point）協作式讓出；1.14+ 引入**異步搶占**：sysmon 或 GC 向 G 棧注入 preempt 請求，signal handler 或 stack guard 觸發，在 safe point 暫停 G 重新調度。解決 tight loop 不調用函數時無法搶占的問題。",
+        "core": "Go 1.14 前僅在函式呼叫邊界（透過 stack guard 檢查）進行協作式讓出；1.14+ 引入**非同步搶佔**：sysmon 或 GC 向運行中的 M 發送 OS 訊號（Unix 下為 `SIGURG`），觸發執行緒的訊號處理器（signal handler）直接修改暫存器 PC，使其跳轉至 `runtime.asyncPreempt` 執行讓出，解決無函式呼叫的無窮迴圈（tight loop）無法被搶佔的問題。",
         "dive": [
-            "G.preempt 標誌 + stackguard0 = stackPreempt 觸發 stack growth 檢查路徑進入調度",
-            "非協作式路徑：向 M 發 signal（SIGURG），在 signal stack 上修改 G 的 PC 到調度入口",
-            "cgo、部分 runtime 路徑仍可能延遲搶占",
+            "協作式搶佔：透過修改 `g.stackguard0 = stackPreempt`，當 G 執行到前導代碼進行堆疊增長檢查時觸發排程",
+            "非同步搶佔：向 M 發送 `SIGURG` 訊號，在訊號處理器中修改 G 的 PC 到 `asyncPreempt` 排程入口，不依賴 stack guard",
+            "cgo、部分 runtime 關鍵區段路徑仍可能延遲搶佔",
         ],
         "followups": [
             ("搶占對延遲有何影響？", "被搶占 G 需等到 safe point，通常微秒～毫秒級；對 p99 延遲敏感服務需避免超大 critical section"),
-            ("和 Java 搶占式線程調度比？", "Go 仍是 user-level scheduling，搶占粒度在 G 而非 OS 線程，切換成本更低"),
+            ("和 Java 搶佔式執行緒排程比？", "Go 仍是 user-level scheduling，搶佔粒度在 G 與 OS 執行緒不同，切換成本更低"),
         ],
-        "pitfalls": ["以為 for{} 永遠無法被搶占（1.14+ 可以）", "在無函數調用的循環中仍假設其他 G 會立即運行"],
+        "pitfalls": ["以為 for{} 永遠無法被搶佔（1.14+ 可以）", "在無函式呼叫的迴圈中仍假設其他 G 會立即運行"],
     },
     {
         "q": "goroutine 和 OS 線程有什麼區別？",
@@ -102,15 +102,15 @@ GO_TOPICS = [
     },
     {
         "q": "Go GC 使用什麼演算法？三色標記如何運作？",
-        "core": "Go 1.5+ 使用**非分代、非壓縮**的並發三色標記-清除（mark-sweep）。白色=未訪問，灰色=已訪問但子未掃完，黑色=已掃完。從 roots（goroutine stack、全局變量）出發標記，最後清除白色物件。大部分 mark 與 mutator 並發執行。",
+        "core": "Go 1.5+ 使用**非分代、非壓縮**的併發三色標記-清除（mark-sweep）。白色=未訪問，灰色=已訪問但子未掃完，黑色=已掃完。從 roots（goroutine stack、全域變數）出發標記，最後清除白色物件。大部分 mark 與 mutator 併發執行。",
         "dive": [
-            "write barrier（混合寫屏障）：標記階段插入屏障，確保「黑色物件不指向白色物件」或等價不變式",
+            "write barrier（混合寫入屏障）：標記階段插入屏障，確保「黑色物件不指向白色物件」或等價不變式",
             "mark assist：分配過快的 G 需協助 mark，避免 heap 增長快於 GC",
             "無分代：每次 GC 掃描整個 heap（對小物件多、生命週期短場景可能不如分代 GC）",
         ],
         "followups": [
             ("為什麼 Go 不用分代 GC？", "簡化 runtime、降低 STW 與 barrier 複雜度；trade-off 是短生命物件可能增加 mark 工作量"),
-            ("三色標記的漏標問題如何解決？", "寫屏障 + STW 短暫重新掃描 roots/stack；或 SATB/deletion barrier 變體"),
+            ("三色標記的漏標問題如何解決？", "使用混合寫入屏障（Hybrid Write Barrier）確保不變式。Go 1.8 起，混合寫入屏障在 GC 期間同時記錄被覆蓋的舊指標與新指向的物件，使得 GC 期間完全不需要進行 STW 堆疊重新掃描（stack re-scanning），STW 降至微秒級。"),
         ],
         "pitfalls": ["以為 GC 完全無 STW", "忽略 mark assist 導致 mutator 變慢"],
         "svg": """
@@ -225,9 +225,9 @@ GO_TOPICS = [
     },
     {
         "q": "select 如何實現？有多個 case ready 時怎麼選？",
-        "core": "select 將所有 case 的 channel 按**偽隨機順序**輪詢（pollorder），避免 starvation。若多個 ready，選第一個在 pollorder 中 ready 的。無 ready 且無 default 則 G 入所有 channel 的 wait queue（single wait 優化只入一個）。",
+        "core": "select 將所有 case 的 channel 按**偽隨機順序**輪詢（pollorder），避免排程飢餓。若多個 ready，選第一個在 pollorder 中 ready 的。無 ready 且無 default 則將當前 goroutine 封裝為 sudog，並**加入所有相關 channel 的等待佇列**（等待被任一 channel 喚醒後再從其他佇列移除）。",
         "dive": [
-            "selectgo 編譯器展開為 runtime.selectgo 調用",
+            "selectgo 編譯器展開為 runtime.selectgo 呼叫",
             "default case 使 select 非阻塞",
             "select 與 context 取消常配合：select { case <-ctx.Done(): ... case v := <-ch: ... }",
         ],
@@ -254,31 +254,31 @@ GO_TOPICS = [
     },
     {
         "q": "map 底層實現？hash 衝突與擴容（evacuation）？",
-        "core": "map 是 hmap + bucket 陣列，每 bucket 最多 8 個 key-value（overflow bucket 鏈接）。hash 低位選 bucket，高位用 tophash 快速過濾。load factor 超阈值觸發**增量擴容**：每次 GC 或寫入時搬運 1-2 個 old bucket 到 new buckets（翻倍），避免一次性 STW 大搬運。",
+        "core": "map 是 hmap + bucket 陣列，每 bucket 最多 8 個 key-value（overflow bucket 鏈結）。雜湊低位選 bucket，高位用 tophash 快速過濾。負載因子超門檻值（6.5）或 overflow bucket 過多時觸發**漸進式擴容**：在後續**寫入或刪除操作時**順便搬運 1-2 個 old bucket 到新位置，避免一次性大搬運導致延遲。注意 GC 完全不參與 map 搬遷。",
         "dive": [
             "key 必須 comparable；NaN != NaN 導致 float key 特殊處理",
             "迭代順序隨機：rand 起始 bucket + 擴容期間雙表遍歷",
-            "delete 可能觸發 same-size 擴容整理（Go 1.12+）",
+            "delete 雖不會主動觸發新擴容，但若 map 處於擴容中，delete 操作也會呼叫 `growWork` 協助搬遷",
         ],
         "followups": [
-            ("為什麼 map 不能并发读写？", "無 mutex，并发写 corrupt 內部結構；读+写也可能 panic"),
-            ("map key 為何無序？", "故意隨機化防依赖插入順序，避免 security/測試陷阱"),
+            ("為什麼 map 不能併發讀寫？", "無 mutex，併發寫 corrupt 內部結構；讀+寫也可能 panic"),
+            ("map key 為何無序？", "故意隨機化防依賴插入順序，避免 security/測試陷阱"),
         ],
         "pitfalls": ["遍歷時 delete 行為（Go 1.12+ 安全但複雜）", "取 map 元素地址（可能因擴容失效）"],
     },
     {
         "q": "slice 和 array 區別？append 如何增長？",
-        "core": "array 值類型、固定長度；slice 是 header（pointer、len、cap）指向底層 array。append 若 len+cap 足夠則原地寫；否則分配新 array（<256 翻倍，≥256 約 1.25 倍 + 對齊），copy 後返回新 header。傳 slice 是 header 副本，改元素可見，append 可能不影響調用方。",
+        "core": "array 值型態、固定長度；slice 是 header（pointer、len、cap）指向底層陣列。append 若 len+cap 足夠則原地寫；否則在 Go 1.18+ 中，舊容量 < 256 時翻倍；≥ 256 時採用平滑過渡公式 `newcap += (newcap + 3 * 256) / 4` 逐步收斂至 1.25 倍，最後進行記憶體對齊分配新陣列，copy 後返回新 header。傳 slice 是 header 副本，改元素可見，append 可能不影響呼叫方。",
         "dive": [
             "slice[:0] 保留 cap 可 reset 重用 buffer",
-            "subslice 共享底層 array，修改互相可見（內存泄漏風險：小 slice 引用大 array）",
+            "subslice 共享底層陣列，修改互相可見（記憶體外洩風險：小 slice 引用大陣列）",
             "copy(dst, src) 按 min(len) 複製",
         ],
         "followups": [
             ("如何高效拼接字符串？", "strings.Builder、bytes.Buffer、預分配；+ 運算符多段會多次分配"),
-            ("slice 作為函數參數如何修改 len？", "需返回新 slice 或傳 *[]T / 封裝結構"),
+            ("slice 作為函式參數如何修改 len？", "需返回新 slice 或傳 *[]T / 封裝結構")
         ],
-        "pitfalls": ["append 後未接收返回值", "subslice 內存泄漏", "并发读写同一 slice 無保護"],
+        "pitfalls": ["append 後未接收返回值", "subslice 記憶體外洩", "併發讀寫同一 slice 無保護"],
     },
     {
         "q": "interface 的 itab 和 eface 是什麼？",
@@ -338,19 +338,19 @@ GO_TOPICS = [
         "pitfalls": ["Lock 顺序不一致死锁", "Copy 已使用的 Mutex", "在 RLock 中 Upgrade 到 Lock（不支持）"],
     },
     {
-        "q": "sync.WaitGroup、Once、Pool、Map 详解？",
-        "core": "WaitGroup 计数 goroutine 完成，Add/Done/Wait，Add 必须在 Wait 前、Done 在 defer 中。Once 保证 func 只执行一次（初始化单例）。Pool 是 per-P 本地缓存的临时对象池，GC 时可能清空，不保证 Get 命中。sync.Map 适合读多写少或 key 稳定分片，内部 read+dirty 双 map。",
+        "q": "sync.WaitGroup、Once、Pool、Map 詳解？",
+        "core": "WaitGroup 關聯 goroutine 同步，Add/Done/Wait，Add 必須在 Wait 前、Done 在 defer 中。Once 保證 func 只執行一次（初始化單例）。Pool 是 per-P 本地快取的臨時物件池，Go 1.13+ 引入 victim cache 機制，GC 時物件先降級至 victim 快取，避免單次 GC 造成所有物件被清空的效能抖動。sync.Map 適合讀多寫少或 key 穩定分片，內部 read+dirty 雙 map。",
         "dive": [
-            "WaitGroup 复制 struct 会 panic",
-            "Pool New 可选，Get 未命中时调用",
-            "sync.Map LoadOrStore、Range 语义与 map 不同",
+            "複製 WaitGroup 結構體會破壞內部狀態，雖不會立即 panic，但併發使用時會造成狀態損壞而 panic（可透過 `go vet` 靜態檢查偵測）",
+            "Pool New 可選，Get 未命中時呼叫",
+            "sync.Map LoadOrStore、Range 語意與 map 不同",
         ],
         "followups": [
-            ("Pool 和 free list 区别？", "Pool 无固定大小，GC 清空；适合 buffer 复用减轻 alloc"),
-            ("sync.Map vs map+RWMutex？", "一般 map+mutex 更简单；sync.Map 特定模式少锁"),
+            ("Pool 和 free list 區別？", "Pool 無固定大小，GC 清空；適合 buffer 複用減輕 alloc"),
+            ("sync.Map vs map+RWMutex？", "一般 map+mutex 更簡單；sync.Map 特定模式少鎖"),
         ],
-        "pitfalls": ["WaitGroup Add 与 go 并发竞态", "Pool 存带状态未 Reset 的对象", "sync.Map 当通用 map 滥用"],
-        "scenario": "例如用 errgroup+context 替代裸 WaitGroup 管理子任务生命周期",
+        "pitfalls": ["WaitGroup Add 與 go 併發競態", "Pool 存帶狀態未 Reset 的物件", "sync.Map 當通用 map 濫用"],
+        "scenario": "例如用 errgroup+context 替代裸 WaitGroup 管理子任務生命週期",
     },
     {
         "q": "Go Memory Model（happens-before）？",
@@ -651,14 +651,14 @@ GO_TOPICS = [
         ),
         "dive": [
             "fan-out：多 worker 從同一 channel 讀；fan-in：多來源匯入一個 channel",
-            "需取消時加 context，select 寫入 out 與 <-ctx.Done()",
+            "需取消時加 context，select 寫入 out 與 <-ctx.Done()，防範下游提前退出導致 worker 永久阻塞與協程洩漏",
             "close(out) 必須在所有 sender 結束後，否則 send on closed channel 會 panic",
         ],
         "followups": [
             ("如何避免下游慢造成阻塞？", "out 加 buffer，或 select+ctx 丟棄，配合背壓策略"),
             ("LMAX Disruptor 與 channel fan-in 差異？", "Disruptor 用 ring buffer 單寫多讀、無鎖序號、低延遲；channel 有 mutex 與排程開銷"),
         ],
-        "pitfalls": ["在所有 sender 結束前 close(out)", "Go 1.22 前未傳參導致所有 goroutine 讀同一個 c"],
+        "pitfalls": ["在所有 sender 結束前 close(out)", "Go 1.22 前未傳參導致所有 goroutine 讀同一個 c", "下游停止讀取時，沒有 context 取消保護的 merge 會導致 worker 執行緒永久阻塞外洩"],
         "scenario": "高吞吐數據管線管線把多來源事件 fan-in 後再分類處理，思路類似 Disruptor 但以 channel/goroutine 實作",
     },
 ]
